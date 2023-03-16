@@ -59,3 +59,7 @@ https://github.com/buerokratt/POC-DMR.Nginx
 #### Initial concept
 
 https://koodivaramu.eesti.ee/buerokratt/architecture/concepts-and-proof-of-concepts/-/tree/master/Distributed%20Message%20Rooms
+
+### Related links
+
+(GitHub Project for POC development](https://github.com/orgs/buerokratt/projects/3/views/1)
