@@ -62,4 +62,4 @@ https://koodivaramu.eesti.ee/buerokratt/architecture/concepts-and-proof-of-conce
 
 ### Related links
 
-(GitHub Project for POC development](https://github.com/orgs/buerokratt/projects/3/views/1)
+[GitHub Project for POC development](https://github.com/orgs/buerokratt/projects/3/views/1)
