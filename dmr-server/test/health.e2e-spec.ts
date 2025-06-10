@@ -21,11 +21,11 @@ describe('HealthController (e2e)', () => {
     await app.close();
   });
 
-  it('/health (GET)', async () => {
+  it('/v1/health (GET)', async () => {
     type HealthResponse = { status: string; timestamp: number };
 
     const response = await request(app.getHttpServer())
-      .get('/health')
+      .get('/v1/health')
       .expect(200)
       .expect('Content-Type', /json/);
 

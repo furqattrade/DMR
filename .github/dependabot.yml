@@ -5,13 +5,13 @@ updates:
     directory: "/dmr-server"
     schedule:
       interval: "daily"
-      time: "03:00"
-      timezone: "Asia/Tashkent"
+      time: "00:00"
+      timezone: "Europe/Tallinn"
     labels:
       - "dependencies"
       - "dmr-server"
     open-pull-requests-limit: 10
-    target-branch: "main"
+    target-branch: "dev"
     pull-request-branch-name:
       separator: "/"
     groups:
@@ -26,18 +26,18 @@ updates:
           - "vitest"
           - "@vitest/*"
 
-  # DMR Client dependencies
+  # DMR Agent dependencies
   - package-ecosystem: "npm"
-    directory: "/dmr-client"
+    directory: "/dmr-agent"
     schedule:
       interval: "daily"
-      time: "03:00"
-      timezone: "Asia/Tashkent"
+      time: "00:00"
+      timezone: "Europe/Tallinn"
     labels:
       - "dependencies"
-      - "dmr-client"
+      - "dmr-agent"
     open-pull-requests-limit: 10
-    target-branch: "main"
+    target-branch: "dev"
     pull-request-branch-name:
       separator: "/"
     groups:
