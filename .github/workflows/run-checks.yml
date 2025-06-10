@@ -1,0 +1,98 @@
+name: Run checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, ready_for_review, reopened, synchronize]
+
+concurrency:
+  group: ${{ github.ref }}-checks
+  cancel-in-progress: true
+
+jobs:
+  format-check:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: npx nx format:check --all
+
+  lint-check:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: npx nx run-many --target=lint:check --all
+
+  test:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: npx nx run-many --target=test --all
+
+  test-e2e:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: npx nx run-many --target=test:e2e --all
+
+  build:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: npx nx run-many --target=build --all
+      - name: Build Docker images
+        run: |
+          for app in apps/*; do
+            if [ -f "$app/Dockerfile" ]; then
+              docker build -f $app/Dockerfile .
+            fi
+          done
