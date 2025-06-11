@@ -11,7 +11,7 @@ export default defineConfig({
     },
     // Allow importing from shared libs
     alias: {
-      '@dmr/shared': resolve(__dirname, './libs/shared/src')
+      '@dmr/shared': resolve(__dirname, './libs/shared/src'),
     },
   },
   plugins: [
