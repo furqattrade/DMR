@@ -1,7 +1,6 @@
 import { HttpService } from '@nestjs/axios';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -10,24 +9,22 @@ import { firstValueFrom } from 'rxjs';
 
 import { ClientConfigDto } from './dto/client-config.dto';
 import { ICentOpsResponse } from './interfaces/centops.interface';
-import { CENT_OPS_CONFIG_TOKEN, CentOpsConfig } from '../../common/config/app.config';
+import { CentOpsConfig, centOpsConfig } from '../../common/config';
 
 @Injectable()
-export class CentopsService implements OnModuleInit {
-  private readonly centOpsConfig: CentOpsConfig;
+export class CentOpsService implements OnModuleInit {
   private centOpsConfiguration: ClientConfigDto[] = [];
   private readonly CENTOPS_CONFIG_CACHE_KEY = 'centops_configuration';
   private readonly CENTOPS_JOB_NAME = 'centops_config_fetch';
+  private readonly logger = new Logger(CentOpsService.name);
 
   constructor(
-    private readonly configService: ConfigService,
-    private readonly logger: Logger,
+    @Inject(centOpsConfig.KEY)
+    private readonly centOpsConfig: CentOpsConfig,
     private readonly httpService: HttpService,
     private readonly schedulerRegistry: SchedulerRegistry,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {
-    this.centOpsConfig = this.configService.getOrThrow<CentOpsConfig>(CENT_OPS_CONFIG_TOKEN);
-  }
+  ) {}
 
   onModuleInit(): void {
     const job = new CronJob(this.centOpsConfig.cronTime, async (): Promise<void> => {

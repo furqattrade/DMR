@@ -1,8 +1,8 @@
-import { Logger, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
-import { CentopsService } from './centops.service';
+import { CentOpsService } from './centops.service';
 
 @Module({
-  providers: [CentopsService, Logger],
+  providers: [CentOpsService],
 })
-export class CentopsModule {}
+export class CentOpsModule {}

@@ -3,22 +3,26 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { RabbitMQModule } from 'libs/rabbitmq';
 
-import { centOpsConfig } from './common/config/app.config';
-import { CentopsModule } from './modules/centops/centops.module';
+import { appConfig, centOpsConfig, rabbitMQConfig } from './common/config';
+import { HealthModule } from './health/health.module';
+import { CentOpsModule } from './modules/centops/centops.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [centOpsConfig],
+      load: [appConfig, centOpsConfig, rabbitMQConfig],
     }),
     ScheduleModule.forRoot(),
     CacheModule.register({
       isGlobal: true,
     }),
     HttpModule.register({ global: true }),
-    CentopsModule,
+    RabbitMQModule,
+    HealthModule,
+    CentOpsModule,
   ],
 })
 export class AppModule {}

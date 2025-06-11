@@ -1,18 +1,12 @@
-import * as process from 'node:process';
+import { ConfigType, registerAs } from '@nestjs/config';
 
-import { registerAs } from '@nestjs/config';
+export const APP_CONFIG_TOKEN = Symbol('APP_CONFIG_TOKEN');
 
-export const CENT_OPS_CONFIG_TOKEN = 'CENT_OPS_CONFIG_TOKEN';
+export type Environment = 'development' | 'production';
 
-export const centOpsConfig = registerAs(
-  CENT_OPS_CONFIG_TOKEN,
-  (): CentOpsConfig => ({
-    url: process.env.CENTOPS_CONFIGURATION_URL || '',
-    cronTime: process.env.CENTOPS_CONFIGURATION_CRON_TIME || '*/30 * * * *',
-  }),
-);
+export const appConfig = registerAs(APP_CONFIG_TOKEN, () => ({
+  port: Number(process.env.PORT ?? 5000),
+  environment: (process.env.ENVIRONMENT as Environment) || 'development',
+}));
 
-export type CentOpsConfig = {
-  cronTime: string;
-  url: string;
-};
+export type AppConfig = ConfigType<typeof appConfig>;

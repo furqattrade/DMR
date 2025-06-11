@@ -1,16 +1,15 @@
 import { HttpService } from '@nestjs/axios';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CentopsService } from './centops.service';
+import { centOpsConfig } from 'src/common/config';
+import { CentOpsService } from './centops.service';
 
-describe('CentopsService', () => {
-  let service: CentopsService;
+describe('CentOpsService', () => {
+  let service: CentOpsService;
   let httpService: HttpService;
   let cacheManager: any;
   let schedulerRegistry: SchedulerRegistry;
@@ -18,15 +17,12 @@ describe('CentopsService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        Logger,
-        CentopsService,
+        CentOpsService,
         {
-          provide: ConfigService,
+          provide: centOpsConfig.KEY,
           useValue: {
-            getOrThrow: vi.fn().mockReturnValue({
-              url: 'http://test-url',
-              cronTime: '* * * * *',
-            }),
+            url: 'http://test-url',
+            cronTime: '* * * * *',
           },
         },
         {
@@ -41,14 +37,10 @@ describe('CentopsService', () => {
           provide: SchedulerRegistry,
           useValue: { addCronJob: vi.fn() },
         },
-        {
-          provide: 'Logger',
-          useValue: { log: vi.fn(), debug: vi.fn(), error: vi.fn() },
-        },
       ],
     }).compile();
 
-    service = module.get<CentopsService>(CentopsService);
+    service = module.get<CentOpsService>(CentOpsService);
     httpService = module.get<HttpService>(HttpService);
     cacheManager = module.get(CACHE_MANAGER);
     schedulerRegistry = module.get<SchedulerRegistry>(SchedulerRegistry);
