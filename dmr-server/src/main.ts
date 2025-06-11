@@ -1,7 +1,7 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import * as compression from 'compression';
+import compression from 'compression';
 
 import { AppModule } from './app.module';
 
@@ -14,6 +14,12 @@ async function bootstrap(): Promise<void> {
   if (process.env.NODE_ENV === 'development') {
     const logger = new Logger('bootstrap');
     logger.log(`Listening on ${await app.getUrl()}`);
+
+    const { setupServer } = await import('msw/node');
+    const { handlers } = await import('./mocks/handlers/centops.response');
+
+    const server = setupServer(...handlers);
+    server.listen();
   }
 }
-bootstrap();
+void bootstrap();
