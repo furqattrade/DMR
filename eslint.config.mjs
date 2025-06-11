@@ -114,6 +114,7 @@ export default [
       '**/vitest.config.e2e.mts',
       '**/test/**/*.ts',
       '**/apps/**/eslint.config.mjs',
+      '**/*.spec.ts',
     ],
   },
   eslint.configs.recommended,

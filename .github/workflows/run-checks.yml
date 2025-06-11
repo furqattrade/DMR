@@ -6,93 +6,47 @@ on:
     types: [opened, ready_for_review, reopened, synchronize]
 
 concurrency:
-  group: ${{ github.ref }}-checks
+  group: ${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:
-  format-check:
+  checks:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      matrix:
+        include:
+          - name: format
+            command: npx nx format:check --all
+          - name: lint
+            command: npx nx run-many --target=lint:check --all
+          - name: test
+            command: npx nx run-many --target=test --all
+          - name: test-e2e
+            command: npx nx run-many --target=test:e2e --all
+    name: ${{ matrix.name }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 10.12.1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.16.0
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - run: npx nx format:check --all
-
-  lint-check:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 10.12.1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.16.0
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - run: npx nx run-many --target=lint:check --all
-
-  test:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 10.12.1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.16.0
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - run: npx nx run-many --target=test --all
-
-  test-e2e:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 10.12.1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.16.0
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - run: npx nx run-many --target=test:e2e --all
+      - uses: ./.github/actions/setup
+      - run: ${{ matrix.command }}
 
   build:
+    needs: checks
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      matrix:
+        app: [dmr-server, dmr-client, dmr-agent]
+    name: build-${{ matrix.app }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 10.12.1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.16.0
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - run: npx nx run-many --target=build --all
-      - name: Build Docker images
+      - uses: ./.github/actions/setup
+      - name: Build Docker image
         run: |
-          for app in apps/*; do
-            if [ -f "$app/Dockerfile" ]; then
-              docker build -f $app/Dockerfile .
-            fi
-          done
+          APP_PATH="apps/${{ matrix.app }}/Dockerfile"
+          if [ -f "$APP_PATH" ]; then
+            echo "Building Docker image for ${{ matrix.app }}"
+            docker build -f "$APP_PATH" .
+          fi
