@@ -1,15 +1,16 @@
+import path from 'path';
 import { defineConfig } from 'vitest/config';
 import swc from 'unplugin-swc';
 
 export default defineConfig({
   test: {
-    include: ['src/**/*.spec.ts'],
     environment: 'node',
     root: './',
   },
   resolve: {
     alias: {
-      '@src': './src',
+      '@dmr/shared': path.resolve(__dirname, '../../libs/shared/src'),
+      '@src': path.resolve(__dirname, './src'),
     },
   },
   plugins: [

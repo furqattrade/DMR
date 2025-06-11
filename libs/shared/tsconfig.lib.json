@@ -5,8 +5,5 @@
     "declaration": true,
     "types": ["node"]
   },
-  "include": [
-    "src/**/*.ts",
-    "../../apps/dmr-server/src/modules/centops/interfaces/centops.interface.ts"
-  ]
+  "include": ["src/**/*.ts"]
 }

@@ -6,7 +6,6 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { CronJob } from 'cron';
 import { firstValueFrom } from 'rxjs';
-
 import { CentOpsConfig, centOpsConfig } from '../../common/config';
 import { ClientConfigDto, ICentOpsResponse } from '@dmr/shared';
 

@@ -11,7 +11,6 @@ export default defineConfig({
   },
   plugins: [
     swc.vite({
-      // Explicitly set the module type to avoid inheriting this value from a `.swcrc` config file
       module: { type: 'es6' },
     }),
   ],

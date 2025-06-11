@@ -4,7 +4,6 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { CentOpsService } from './centops.service';
 import { centOpsConfig } from '../../common/config';
 

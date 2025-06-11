@@ -1,11 +1,11 @@
 import nx from '@nx/eslint-plugin';
 import eslint from '@eslint/js';
+import vitest from '@vitest/eslint-plugin';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import unusedImports from 'eslint-plugin-unused-imports';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
-import unusedImports from 'eslint-plugin-unused-imports';
 import * as importPlugin from 'eslint-plugin-import';
-import vitest from '@vitest/eslint-plugin';
 import sonarjs from 'eslint-plugin-sonarjs';
 import unicorn from 'eslint-plugin-unicorn';
 
@@ -74,6 +74,12 @@ export default [
         {
           ignoreCase: true,
           ignoreDeclarationSort: true,
+        },
+      ],
+      'prettier/prettier': [
+        'error',
+        {
+          endOfLine: 'auto',
         },
       ],
     },
