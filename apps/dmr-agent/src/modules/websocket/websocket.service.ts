@@ -21,25 +21,27 @@ export class WebsocketService implements OnModuleInit {
 
   // eslint-disable-next-line @typescript-eslint/require-await
   private async connectToServer(): Promise<void> {
-    const serverUrl = this.configService.get<string>('DMR_SERVER_WEBSOCKET_URL');
-    if (!serverUrl) {
-      this.logger.error('DMR_SERVER_WEBSOCKET_URL is not configured');
-      return;
-    }
+    const requiredConfigs = {
+      serverUrl: this.configService.get<string>('DMR_SERVER_WEBSOCKET_URL'),
+      agentId: this.configService.get<string>('AGENT_ID'),
+      privateKey: this.configService.get<string>('AGENT_PRIVATE_KEY'),
+    };
 
-    const agentId = this.configService.get<string>('AGENT_ID');
-    if (!agentId) {
-      this.logger.error('AGENT_ID is not configured');
-      return;
-    }
-
-    const privateKey = this.configService.get<string>('AGENT_PRIVATE_KEY');
-    if (!privateKey) {
-      this.logger.error('AGENT_PRIVATE_KEY is not configured');
-      return;
+    for (const [key, value] of Object.entries(requiredConfigs)) {
+      if (!value) {
+        const configName =
+          key === 'serverUrl'
+            ? 'DMR_SERVER_WEBSOCKET_URL'
+            : key === 'agentId'
+              ? 'AGENT_ID'
+              : 'AGENT_PRIVATE_KEY';
+        this.logger.error(`${configName} is not configured`);
+        return;
+      }
     }
 
     try {
+      const { serverUrl, agentId, privateKey } = requiredConfigs;
       this.socket = io(serverUrl, {
         reconnectionDelay: this.configService.get<number>('WEBSOCKET_RECONNECTION_DELAY', 1000),
         reconnectionDelayMax: this.configService.get<number>('WEBSOCKET_DELAY_MAX', 5000),
