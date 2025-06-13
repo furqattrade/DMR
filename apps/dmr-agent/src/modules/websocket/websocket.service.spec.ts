@@ -111,12 +111,20 @@ describe('WebsocketService', () => {
   });
 
   it('disconnect() should call socket.disconnect()', () => {
-    const logSpy = vi.spyOn(Logger.prototype, 'log');
     service['socket'] = mockSocket as any;
 
     service.disconnect();
 
     expect(mockSocket.disconnect).toHaveBeenCalled();
-    expect(logSpy).toHaveBeenCalledWith('Manually disconnected from DMR server');
+  });
+
+  it('onModuleDestroy() should call disconnect() and log shutdown message', () => {
+    const disconnectSpy = vi.spyOn(service, 'disconnect');
+    const logSpy = vi.spyOn(Logger.prototype, 'log');
+
+    service.onModuleDestroy();
+
+    expect(disconnectSpy).toHaveBeenCalled();
+    expect(logSpy).toHaveBeenCalledWith('Socket disconnected on application shutdown');
   });
 });
