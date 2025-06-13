@@ -77,15 +77,15 @@ describe('WebsocketService', () => {
 
   it('should establish socket connection with proper auth', async () => {
     const { io } = await import('socket.io-client');
+    mockJwtSign.mockReturnValue('test-token');
+
     (io as unknown as MockInstance).mockImplementation((_url, options) => {
-      options.auth((authData: { token: string }) => {
-        expect(authData.token).toBeDefined();
-      });
+      // Verify auth is an object with token property
+      expect(options.auth).toEqual({ token: 'test-token' });
       return mockSocket;
     });
 
-    mockJwtSign.mockReturnValue('test-token');
-    await service['connectToServer']();
+    service['connectToServer']();
 
     expect(io).toHaveBeenCalled();
     expect(service['socket']).toBe(mockSocket);
