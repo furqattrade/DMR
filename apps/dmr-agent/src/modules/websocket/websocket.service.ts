@@ -129,6 +129,10 @@ export class WebsocketService implements OnModuleInit, OnModuleDestroy {
     return Boolean(this.socket?.connected);
   }
 
+  getSocket(): Socket | null {
+    return this.socket;
+  }
+
   onModuleDestroy(): void {
     this.disconnect();
     this.logger.log('Socket disconnected on application shutdown');

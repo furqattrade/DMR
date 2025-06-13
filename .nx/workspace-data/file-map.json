@@ -27,44 +27,64 @@
   "fileMap": {
     "nonProjectFiles": [
       {
-        "file": ".editorconfig",
-        "hash": "11532813898455409296"
-      },
-      {
-        "file": ".github/actions/setup/action.yml",
-        "hash": "1041381079162519325"
-      },
-      {
-        "file": ".github/dependabot.yml",
-        "hash": "3023922340996625698"
-      },
-      {
         "file": ".github/workflows/run-checks.yml",
         "hash": "12913241382966737240"
-      },
-      {
-        "file": ".gitignore",
-        "hash": "17734103462837485078"
-      },
-      {
-        "file": ".npmrc",
-        "hash": "754837060302785938"
-      },
-      {
-        "file": ".nvmrc",
-        "hash": "9810507002215836495"
-      },
-      {
-        "file": ".prettierignore",
-        "hash": "17085498363870782104"
       },
       {
         "file": ".prettierrc",
         "hash": "3416863897412338355"
       },
       {
+        "file": ".github/dependabot.yml",
+        "hash": "3023922340996625698"
+      },
+      {
+        "file": ".editorconfig",
+        "hash": "11532813898455409296"
+      },
+      {
         "file": ".vscode/extensions.json",
         "hash": "17637368926737444469"
+      },
+      {
+        "file": "README.md",
+        "hash": "12856780038538234136"
+      },
+      {
+        "file": ".prettierignore",
+        "hash": "17085498363870782104"
+      },
+      {
+        "file": "pnpm-lock.yaml",
+        "hash": "9963727432128232243"
+      },
+      {
+        "file": "vitest.config.mts",
+        "hash": "17251976769218241853"
+      },
+      {
+        "file": "nx.json",
+        "hash": "4528107327285619908"
+      },
+      {
+        "file": ".github/actions/setup/action.yml",
+        "hash": "1041381079162519325"
+      },
+      {
+        "file": "package.json",
+        "hash": "15560925069475696416"
+      },
+      {
+        "file": ".npmrc",
+        "hash": "754837060302785938"
+      },
+      {
+        "file": "tsconfig.base.json",
+        "hash": "5892148436194731464"
+      },
+      {
+        "file": "eslint.config.mjs",
+        "hash": "5971704799969538665"
       },
       {
         "file": ".vscode/settings.json",
@@ -75,104 +95,20 @@
         "hash": "3473145850101588107"
       },
       {
-        "file": "README.md",
-        "hash": "12856780038538234136"
+        "file": ".nvmrc",
+        "hash": "9810507002215836495"
       },
       {
-        "file": "eslint.config.mjs",
-        "hash": "5971704799969538665"
-      },
-      {
-        "file": "nx.json",
-        "hash": "4528107327285619908"
-      },
-      {
-        "file": "package.json",
-        "hash": "14805371747423426707"
-      },
-      {
-        "file": "pnpm-lock.yaml",
-        "hash": "6021336715613521407"
-      },
-      {
-        "file": "tsconfig.base.json",
-        "hash": "5892148436194731464"
-      },
-      {
-        "file": "vitest.config.mts",
-        "hash": "17251976769218241853"
+        "file": ".gitignore",
+        "hash": "17734103462837485078"
       }
     ],
     "projectFileMap": {
-      "shared": [
-        {
-          "file": "libs/shared/.swcrc",
-          "hash": "16777374493166073853"
-        },
-        {
-          "file": "libs/shared/README.md",
-          "hash": "10464589154510889842"
-        },
-        {
-          "file": "libs/shared/package.json",
-          "hash": "7838365250991449635",
-          "deps": [
-            "npm:tslib"
-          ]
-        },
-        {
-          "file": "libs/shared/project.json",
-          "hash": "5066453485445064195"
-        },
-        {
-          "file": "libs/shared/src/dtos/client-config.dto.ts",
-          "hash": "16174089157859681171",
-          "deps": [
-            "npm:class-validator"
-          ]
-        },
-        {
-          "file": "libs/shared/src/dtos/index.ts",
-          "hash": "8211317946809149203"
-        },
-        {
-          "file": "libs/shared/src/enums/app.enum.constant.ts",
-          "hash": "15936416530517059294"
-        },
-        {
-          "file": "libs/shared/src/enums/index.ts",
-          "hash": "16155440842164336403"
-        },
-        {
-          "file": "libs/shared/src/index.ts",
-          "hash": "15085450680615992957"
-        },
-        {
-          "file": "libs/shared/src/interfaces/centops.interface.ts",
-          "hash": "8877361773788756150"
-        },
-        {
-          "file": "libs/shared/src/interfaces/index.ts",
-          "hash": "10038226033762901316"
-        },
-        {
-          "file": "libs/shared/src/utils/index.ts",
-          "hash": "10684298024428295674"
-        },
-        {
-          "file": "libs/shared/src/utils/map-from-array.ts",
-          "hash": "13859967925918030247"
-        },
-        {
-          "file": "libs/shared/tsconfig.json",
-          "hash": "7045060515225637384"
-        },
-        {
-          "file": "libs/shared/tsconfig.lib.json",
-          "hash": "15798669420171897096"
-        }
-      ],
       "dmr-agent": [
+        {
+          "file": "apps/dmr-agent/.env.example",
+          "hash": "17699831770146877766"
+        },
         {
           "file": "apps/dmr-agent/eslint.config.mjs",
           "hash": "2624537849564014525"
@@ -183,7 +119,7 @@
         },
         {
           "file": "apps/dmr-agent/src/app.module.ts",
-          "hash": "4070239137483428730",
+          "hash": "12374493527756814235",
           "deps": [
             "npm:@nestjs/common"
           ]
@@ -218,6 +154,27 @@
           ]
         },
         {
+          "file": "apps/dmr-agent/src/modules/agents/agents.service.spec.ts",
+          "hash": "10812652509562121593",
+          "deps": [
+            "npm:@nestjs/testing",
+            "npm:@nestjs/cache-manager",
+            "shared",
+            "npm:socket.io-client",
+            "npm:@nestjs/common"
+          ]
+        },
+        {
+          "file": "apps/dmr-agent/src/modules/agents/agents.service.ts",
+          "hash": "11498369869269142224",
+          "deps": [
+            "npm:@nestjs/common",
+            "npm:@nestjs/cache-manager",
+            "npm:cache-manager",
+            "shared"
+          ]
+        },
+        {
           "file": "apps/dmr-agent/src/modules/health/health.controller.ts",
           "hash": "9601622024181285530",
           "deps": [
@@ -243,6 +200,40 @@
           "hash": "12629746710947422473",
           "deps": [
             "npm:@nestjs/common"
+          ]
+        },
+        {
+          "file": "apps/dmr-agent/src/modules/websocket/websocket.module.ts",
+          "hash": "15543039703317337094",
+          "deps": [
+            "npm:@nestjs/common",
+            "npm:@nestjs/jwt",
+            "npm:@nestjs/config"
+          ]
+        },
+        {
+          "file": "apps/dmr-agent/src/modules/websocket/websocket.service.spec.ts",
+          "hash": "6961688642880433803",
+          "deps": [
+            "npm:vitest",
+            "npm:@nestjs/config",
+            "npm:@nestjs/jwt",
+            "npm:@nestjs/common",
+            [
+              "npm:socket.io-client",
+              "dynamic"
+            ]
+          ]
+        },
+        {
+          "file": "apps/dmr-agent/src/modules/websocket/websocket.service.ts",
+          "hash": "17077714805899751552",
+          "deps": [
+            "shared",
+            "npm:@nestjs/common",
+            "npm:@nestjs/config",
+            "npm:@nestjs/jwt",
+            "npm:socket.io-client"
           ]
         },
         {
@@ -298,10 +289,86 @@
           ]
         }
       ],
+      "shared": [
+        {
+          "file": "libs/shared/.swcrc",
+          "hash": "16777374493166073853"
+        },
+        {
+          "file": "libs/shared/README.md",
+          "hash": "10464589154510889842"
+        },
+        {
+          "file": "libs/shared/package.json",
+          "hash": "7838365250991449635",
+          "deps": [
+            "npm:tslib"
+          ]
+        },
+        {
+          "file": "libs/shared/project.json",
+          "hash": "5066453485445064195"
+        },
+        {
+          "file": "libs/shared/src/dtos/client-config.dto.ts",
+          "hash": "16174089157859681171",
+          "deps": [
+            "npm:class-validator"
+          ]
+        },
+        {
+          "file": "libs/shared/src/dtos/index.ts",
+          "hash": "8211317946809149203"
+        },
+        {
+          "file": "libs/shared/src/enums/app.enum.constant.ts",
+          "hash": "15936416530517059294"
+        },
+        {
+          "file": "libs/shared/src/enums/index.ts",
+          "hash": "16155440842164336403"
+        },
+        {
+          "file": "libs/shared/src/index.ts",
+          "hash": "15085450680615992957"
+        },
+        {
+          "file": "libs/shared/src/interfaces/agent-events.interface.ts",
+          "hash": "13464048704198610509"
+        },
+        {
+          "file": "libs/shared/src/interfaces/centops.interface.ts",
+          "hash": "11224158801944804310"
+        },
+        {
+          "file": "libs/shared/src/interfaces/index.ts",
+          "hash": "9983412190694300802"
+        },
+        {
+          "file": "libs/shared/src/interfaces/jwt-payload.interfaces.ts",
+          "hash": "13664580786096772311"
+        },
+        {
+          "file": "libs/shared/src/utils/index.ts",
+          "hash": "10684298024428295674"
+        },
+        {
+          "file": "libs/shared/src/utils/map-from-array.ts",
+          "hash": "13859967925918030247"
+        },
+        {
+          "file": "libs/shared/tsconfig.json",
+          "hash": "7045060515225637384"
+        },
+        {
+          "file": "libs/shared/tsconfig.lib.json",
+          "hash": "15798669420171897096"
+        }
+      ],
       "dmr-server": [
         {
           "file": "apps/dmr-server/.env.example",
-          "hash": "10083612560312981126"
+          "hash": "10711828205601547563"
         },
         {
           "file": "apps/dmr-server/docker-compose.yml",
