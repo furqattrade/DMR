@@ -1,210 +1,115 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AgentsService } from './agents.service';
+import { IAgent, IAgentList } from '@dmr/shared';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WebsocketService } from '../websocket/websocket.service';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { AgentEventNames, AgentStatus, IAgentInfo } from '@dmr/shared';
-import { Socket } from 'socket.io-client';
-import { Logger } from '@nestjs/common';
+import { AgentsService } from './agents.service';
 
 describe('AgentsService', () => {
   let service: AgentsService;
-  let websocketService: WebsocketService;
-  let cacheManager: { get: jest.Mock; set: jest.Mock };
-  let mockSocket: Partial<Socket>;
+  let mockWebsocketService: WebsocketService;
+  let mockCacheManager: {
+    get: (key: string) => Promise<any>;
+    set: (key: string, value: any, ttl?: number) => Promise<void>;
+  };
 
-  beforeEach(async () => {
-    // Mock socket with event listeners
-    mockSocket = {
-      on: jest.fn(),
-      connected: true,
+  const agent1: IAgent = {
+    id: '1',
+    name: 'Agent 1',
+    authentication_certificate: 'cert1',
+    created_at: '2023-01-01',
+    updated_at: '2023-01-02',
+  };
+
+  const agent2: IAgent = {
+    id: '2',
+    name: 'Agent 2',
+    authentication_certificate: 'cert2',
+    created_at: '2023-01-03',
+    updated_at: '2023-01-04',
+  };
+
+  const deletedAgent: IAgent = {
+    id: '3',
+    name: 'Deleted Agent',
+    authentication_certificate: 'cert3',
+    created_at: '2023-01-05',
+    updated_at: '2023-01-06',
+    deleted: true,
+  };
+
+  beforeEach(() => {
+    mockWebsocketService = {
+      isConnected: vi.fn(),
+      getSocket: vi.fn(),
+    } as any;
+
+    mockCacheManager = {
+      get: vi.fn(),
+      set: vi.fn(),
     };
 
-    // Mock cache manager
-    cacheManager = {
-      get: jest.fn(),
-      set: jest.fn(),
+    service = new AgentsService(mockCacheManager as any, mockWebsocketService);
+  });
+
+  it('should call setupSocketEventListeners on module init', () => {
+    const setupSpy = vi.spyOn(service as any, 'setupSocketEventListeners');
+    service.onModuleInit();
+    expect(setupSpy).toHaveBeenCalled();
+  });
+
+  it('should store only non-deleted agents on full list event', async () => {
+    const data: IAgentList = {
+      response: [agent1, deletedAgent, agent2],
     };
 
-    // Mock websocket service
-    const mockWebsocketService = {
-      isConnected: jest.fn().mockReturnValue(true),
-      getSocket: jest.fn().mockReturnValue(mockSocket),
+    await (service as any).handleFullAgentListEvent(data);
+
+    expect(mockCacheManager.set).toHaveBeenCalledWith('DMR_AGENTS_LIST', [agent1, agent2]);
+  });
+
+  it('should update and delete agents correctly on partial list event', async () => {
+    mockCacheManager.get = vi.fn().mockResolvedValue([agent1]);
+
+    const update: IAgentList = {
+      response: [{ ...agent2 }, { ...agent1, deleted: true }],
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AgentsService,
-        {
-          provide: WebsocketService,
-          useValue: mockWebsocketService,
-        },
-        {
-          provide: CACHE_MANAGER,
-          useValue: cacheManager,
-        },
-      ],
-    }).compile();
+    await (service as any).handlePartialAgentListEvent(update);
 
-    service = module.get<AgentsService>(AgentsService);
-    websocketService = module.get<WebsocketService>(WebsocketService);
-
-    // Spy on logger
-    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
-    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
-    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    expect(mockCacheManager.set).toHaveBeenCalledWith('DMR_AGENTS_LIST', [agent2], 0);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  it('should get all agents from cache', async () => {
+    mockCacheManager.get = vi.fn().mockResolvedValue([agent1, agent2]);
+
+    const result = await service.getAllAgents();
+    expect(result).toEqual([agent1, agent2]);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('should return empty list on getAllAgents error', async () => {
+    mockCacheManager.get = vi.fn().mockRejectedValue(new Error('Cache error'));
+
+    const result = await service.getAllAgents();
+    expect(result).toEqual([]);
   });
 
-  describe('onModuleInit', () => {
-    it('should set up socket event listeners when socket is connected', () => {
-      service.onModuleInit();
+  it('should get agent by ID from cache', async () => {
+    mockCacheManager.get = vi.fn().mockResolvedValue([agent1, agent2]);
 
-      expect(websocketService.isConnected).toHaveBeenCalled();
-      expect(mockSocket.on).toHaveBeenCalledWith(
-        AgentEventNames.FULL_AGENT_LIST,
-        expect.any(Function),
-      );
-      expect(mockSocket.on).toHaveBeenCalledWith(
-        AgentEventNames.PARTIAL_AGENT_LIST,
-        expect.any(Function),
-      );
-      expect(mockSocket.on).toHaveBeenCalledWith(
-        AgentEventNames.AGENT_CONNECTED,
-        expect.any(Function),
-      );
-      expect(mockSocket.on).toHaveBeenCalledWith(
-        AgentEventNames.AGENT_DISCONNECTED,
-        expect.any(Function),
-      );
-    });
-
-    it('should log warning when socket is not connected', () => {
-      jest.spyOn(websocketService, 'isConnected').mockReturnValueOnce(false);
-      service.onModuleInit();
-
-      expect(websocketService.isConnected).toHaveBeenCalled();
-      expect(Logger.prototype.warn).toHaveBeenCalledWith(
-        expect.stringContaining('WebSocket is not connected'),
-      );
-      expect(mockSocket.on).not.toHaveBeenCalled();
-    });
+    const result = await service.getAgentById('2');
+    expect(result).toEqual(agent2);
   });
 
-  describe('getAllAgents', () => {
-    it('should return agents from cache', async () => {
-      const mockAgents: IAgentInfo[] = [
-        {
-          id: 'agent1',
-          name: 'Agent 1',
-          status: AgentStatus.ONLINE,
-        },
-        {
-          id: 'agent2',
-          name: 'Agent 2',
-          status: AgentStatus.OFFLINE,
-        },
-      ];
+  it('should return null if agent ID is not found', async () => {
+    mockCacheManager.get = vi.fn().mockResolvedValue([agent1]);
 
-      cacheManager.get.mockResolvedValueOnce(mockAgents);
-      const result = await service.getAllAgents();
-
-      expect(cacheManager.get).toHaveBeenCalledWith('DMR_AGENTS_LIST');
-      expect(result).toEqual(mockAgents);
-    });
-
-    it('should return empty array when cache is empty', async () => {
-      cacheManager.get.mockResolvedValueOnce(null);
-      const result = await service.getAllAgents();
-
-      expect(cacheManager.get).toHaveBeenCalledWith('DMR_AGENTS_LIST');
-      expect(result).toEqual([]);
-    });
-
-    it('should handle errors and return empty array', async () => {
-      cacheManager.get.mockRejectedValueOnce(new Error('Cache error'));
-      const result = await service.getAllAgents();
-
-      expect(cacheManager.get).toHaveBeenCalledWith('DMR_AGENTS_LIST');
-      expect(Logger.prototype.error).toHaveBeenCalledWith(
-        expect.stringContaining('Error getting agents'),
-      );
-      expect(result).toEqual([]);
-    });
+    const result = await service.getAgentById('not-found');
+    expect(result).toBeNull();
   });
 
-  describe('getAgentById', () => {
-    it('should return agent by ID when found', async () => {
-      const mockAgents: IAgentInfo[] = [
-        {
-          id: 'agent1',
-          name: 'Agent 1',
-          status: AgentStatus.ONLINE,
-        },
-        {
-          id: 'agent2',
-          name: 'Agent 2',
-          status: AgentStatus.OFFLINE,
-        },
-      ];
+  it('should return null if getAgentById throws error', async () => {
+    mockCacheManager.get = vi.fn().mockRejectedValue(new Error('error'));
 
-      cacheManager.get.mockResolvedValueOnce(mockAgents);
-      const result = await service.getAgentById('agent1');
-
-      expect(cacheManager.get).toHaveBeenCalledWith('DMR_AGENTS_LIST');
-      expect(result).toEqual(mockAgents[0]);
-    });
-
-    it('should return null when agent not found', async () => {
-      const mockAgents: IAgentInfo[] = [
-        {
-          id: 'agent1',
-          name: 'Agent 1',
-          status: AgentStatus.ONLINE,
-        },
-      ];
-
-      cacheManager.get.mockResolvedValueOnce(mockAgents);
-      const result = await service.getAgentById('agent2');
-
-      expect(cacheManager.get).toHaveBeenCalledWith('DMR_AGENTS_LIST');
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('getOnlineAgents', () => {
-    it('should return only online agents', async () => {
-      const mockAgents: IAgentInfo[] = [
-        {
-          id: 'agent1',
-          name: 'Agent 1',
-          status: AgentStatus.ONLINE,
-        },
-        {
-          id: 'agent2',
-          name: 'Agent 2',
-          status: AgentStatus.OFFLINE,
-        },
-        {
-          id: 'agent3',
-          name: 'Agent 3',
-          status: AgentStatus.ONLINE,
-        },
-      ];
-
-      cacheManager.get.mockResolvedValueOnce(mockAgents);
-      const result = await service.getOnlineAgents();
-
-      expect(cacheManager.get).toHaveBeenCalledWith('DMR_AGENTS_LIST');
-      expect(result).toHaveLength(2);
-      expect(result[0].id).toBe('agent1');
-      expect(result[1].id).toBe('agent3');
-    });
+    const result = await service.getAgentById('1');
+    expect(result).toBeNull();
   });
 });
