@@ -28,12 +28,17 @@ export class AgentsService implements OnModuleInit {
 
     const socket = this.websocketService.getSocket();
 
-    // Listen for full agent list updates
+    if (!socket) {
+      this.logger.error(
+        'Failed to get socket instance even though connection was reported as active',
+      );
+      return;
+    }
+
     socket.on(AgentEventNames.FULL_AGENT_LIST, (data: IAgentList) => {
       void this.handleFullAgentListEvent(data);
     });
 
-    // Listen for partial agent list updates
     socket.on(AgentEventNames.PARTIAL_AGENT_LIST, (data: IAgentList) => {
       void this.handlePartialAgentListEvent(data);
     });
@@ -59,20 +64,15 @@ export class AgentsService implements OnModuleInit {
         currentAgents.forEach((agent: IAgent) => agentMap.set(agent.id, agent));
       }
 
-      const updatedAgentIds: string[] = [];
-      const deletedAgentIds: string[] = [];
-
       if (data.response && Array.isArray(data.response)) {
         data.response.forEach((agent: IAgent) => {
           if (agent.id) {
             if (agent.deleted) {
               if (agentMap.has(agent.id)) {
                 agentMap.delete(agent.id);
-                deletedAgentIds.push(agent.id);
               }
             } else {
               agentMap.set(agent.id, agent);
-              updatedAgentIds.push(agent.id);
             }
           }
         });
