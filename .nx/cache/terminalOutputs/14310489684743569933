@@ -1,0 +1,63 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.3 [39m[90mD:/uzinfocom/DMR[39m
+
+ [32m✓[39m apps/dmr-agent/src/modules/health/health.service.spec.ts[2m > [22mHealthService[2m > [22mshould return ok status[32m 2[2mms[22m[39m
+ [32m✓[39m apps/dmr-server/src/modules/health/health.service.spec.ts[2m > [22mHealthService[2m > [22mshould return ok status[32m 2[2mms[22m[39m
+[31m[Nest] 48696  - [39m13/06/2025, 3:33:05 pm [31m  ERROR[39m [38;5;3m[WebsocketService] [39m[31mDMR_SERVER_WEBSOCKET_URL is not configured[39m
+[31m[Nest] 48696  - [39m13/06/2025, 3:33:05 pm [31m  ERROR[39m [38;5;3m[WebsocketService] [39m[31mFailed to connect to DMR server: options.auth is not a function[39m
+[32m[Nest] 48696  - [39m13/06/2025, 3:33:05 pm [32m    LOG[39m [38;5;3m[WebsocketService] [39m[32mSocket disconnected on application shutdown[39m
+ [32m✓[39m apps/dmr-agent/src/modules/websocket/websocket.service.spec.ts[2m > [22mWebsocketService[2m > [22mshould generate a JWT token correctly[32m 4[2mms[22m[39m
+ [32m✓[39m apps/dmr-agent/src/modules/websocket/websocket.service.spec.ts[2m > [22mWebsocketService[2m > [22mshould log an error if DMR_SERVER_WEBSOCKET_URL is not configured[32m 2[2mms[22m[39m
+ [31m×[39m apps/dmr-agent/src/modules/websocket/websocket.service.spec.ts[2m > [22mWebsocketService[2m > [22mshould establish socket connection with proper auth[32m 6[2mms[22m[39m
+[31m   → expected null to be { on: [Function spy], …(5) } // Object.is equality[39m
+ [32m✓[39m apps/dmr-agent/src/modules/websocket/websocket.service.spec.ts[2m > [22mWebsocketService[2m > [22mshould set up event listeners after connection[32m 1[2mms[22m[39m
+ [32m✓[39m apps/dmr-agent/src/modules/websocket/websocket.service.spec.ts[2m > [22mWebsocketService[2m > [22misConnected() should return true when socket is connected[32m 0[2mms[22m[39m
+ [32m✓[39m apps/dmr-agent/src/modules/websocket/websocket.service.spec.ts[2m > [22mWebsocketService[2m > [22mdisconnect() should call socket.disconnect()[32m 0[2mms[22m[39m
+ [32m✓[39m apps/dmr-agent/src/modules/websocket/websocket.service.spec.ts[2m > [22mWebsocketService[2m > [22monModuleDestroy() should call disconnect() and log shutdown message[32m 1[2mms[22m[39m
+ [32m✓[39m apps/dmr-server/src/libs/rabbitmq/rabbitmq.service.spec.ts[2m > [22mRabbitMQService[2m > [22mshould be defined[32m 9[2mms[22m[39m
+ [32m✓[39m apps/dmr-server/src/libs/rabbitmq/rabbitmq.service.spec.ts[2m > [22mRabbitMQService[2m > [22mshould setup queue and DLQ[32m 5[2mms[22m[39m
+ [32m✓[39m apps/dmr-server/src/libs/rabbitmq/rabbitmq.service.spec.ts[2m > [22mRabbitMQService[2m > [22mshould delete queue and DLQ[32m 2[2mms[22m[39m
+[31m[Nest] 36788  - [39m13/06/2025, 3:33:05 pm [31m  ERROR[39m [38;5;3m[CentOpsService] [39m[31mValidation failed for client configuration: [{"target":{"id":null,"name":"Org1","authenticationCertificate":"cert","createdAt":"2024-01-01T00:00:00Z","updatedAt":"2024-01-01T00:00:00Z"},"value":null,"property":"id","children":[],"constraints":{"isNotEmpty":"id should not be empty","isUuid":"id must be a UUID"}}][39m
+[31m[Nest] 36788  - [39m13/06/2025, 3:33:05 pm [31m  ERROR[39m [38;5;3m[CentOpsService] [39m[31mError while get response from http://test-url: Network error[39m
+ [32m✓[39m apps/dmr-server/src/modules/centops/centops.service.spec.ts[2m > [22mCentOpsService[2m > [22mshould be defined[32m 8[2mms[22m[39m
+ [32m✓[39m apps/dmr-server/src/modules/centops/centops.service.spec.ts[2m > [22mCentOpsService[2m > [22mshould schedule cron job on module init[32m 10[2mms[22m[39m
+ [32m✓[39m apps/dmr-server/src/modules/centops/centops.service.spec.ts[2m > [22mCentOpsService[2m > [22mshould fetch and cache valid configuration[32m 7[2mms[22m[39m
+ [32m✓[39m apps/dmr-server/src/modules/centops/centops.service.spec.ts[2m > [22mCentOpsService[2m > [22mshould log error if validation fails[32m 3[2mms[22m[39m
+ [32m✓[39m apps/dmr-server/src/modules/centops/centops.service.spec.ts[2m > [22mCentOpsService[2m > [22mshould log error on http failure[32m 2[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m apps/dmr-agent/src/modules/websocket/websocket.service.spec.ts[2m > [22mWebsocketService[2m > [22mshould establish socket connection with proper auth
+[31m[1mAssertionError[22m: expected null to be { on: [Function spy], …(5) } // Object.is equality[39m
+
+[32m- Expected:[39m 
+{
+  "auth": {},
+  "connected": true,
+  "disconnect": [Function spy],
+  "id": "test-socket-id",
+  "on": [Function spy],
+  "recovered": false,
+}
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m apps/dmr-agent/src/modules/websocket/websocket.service.spec.ts:[2m91:31[22m[39m
+    [90m 89| [39m
+    [90m 90| [39m    [34mexpect[39m(io)[33m.[39m[34mtoHaveBeenCalled[39m()[33m;[39m
+    [90m 91| [39m    [34mexpect[39m(service[[32m'socket'[39m])[33m.[39m[34mtoBe[39m(mockSocket)[33m;[39m
+    [90m   | [39m                              [31m^[39m
+    [90m 92| [39m  })[33m;[39m
+    [90m 93| [39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m4 passed[39m[22m[90m (5)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m16 passed[39m[22m[90m (17)[39m
+[2m   Start at [22m 15:33:04
+[90m [2m❯[22m asyncGeneratorStep apps/dmr-agent/src/modules/websocket/websocket.service.spec.ts:[2m8:28[22m[39m
+[90m [2m❯[22m _next apps/dmr-agent/src/modules/websocket/websocket.service.spec.ts:[2m26:17[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+[2m   Duration [22m 1.79s[2m (transform 301ms, setup 0ms, collect 3.32s, tests 68ms, environment 1ms, prepare 1.11s)[22m
+

@@ -1,0 +1,92 @@
+
+[0m[7m[1m[36m NX [39m[22m[27m[0m  [36mRunning target [1mbuild[22m for project dmr-server and [1m1[22m task it depends on:[39m
+
+
+
+[2m> [22m[2mnx run[22m shared:build  [2m[existing outputs match the cache, left as is][22m
+
+
+[2m> [22m[2mnx run[22m dmr-server:build:development  [2m[local cache][22m
+
+[2m> [22mwebpack-cli build node-env=development
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 18.7 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (0c8f1f54f978910b)
+
+
+
+[0m[7m[1m[32m NX [39m[22m[27m[0m  [32mSuccessfully ran target [1mbuild[22m for project dmr-server and [1m1[22m task it depends on[39m
+
+[2mNx read the output from the cache instead of running the command for 2 out of 2 tasks.[22m
+
+[1m[31mDebugger listening on ws://localhost:9229/9b7f6740-feec-4c88-bba3-addda817878d[39m[22m
+[1m[31mDebugger listening on ws://localhost:9229/9b7f6740-feec-4c88-bba3-addda817878d[39m[22m
+[1m[31mFor help, see: https://nodejs.org/en/docs/inspector[39m[22m
+[1m[31m[39m[22m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:47 pm [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:47 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +10ms[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:47 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCommonModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:47 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mHttpModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:47 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:47 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mHealthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:47 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:47 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRabbitMQModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:47 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCacheModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:47 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCentOpsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:47 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:47 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:47 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHealthController {/v1/health}:[39m[38;5;3m +5ms[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:47 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/v1/health, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:48 pm [32m    LOG[39m [38;5;3m[RabbitMQService] [39m[32mRabbitMQ connected[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:48 pm [32m    LOG[39m [38;5;3m[CentOpsService] [39m[32mCron job 'centops_config_fetch' scheduled for: */30 * * * *[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:48 pm [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +1ms[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:48 pm [32m    LOG[39m [38;5;3m[bootstrap] [39m[32mListening on http://[::1]:5000[39m
+[32m[Nest] 30896  - [39m12/06/2025, 1:30:48 pm [32m    LOG[39m [32m🚀 Application is running on: http://localhost:5000[39m
+
+[7m[1m[36m NX [39m[22m[27m [1mFile change detected. Restarting...[22m
+
+
+[0m[7m[1m[36m NX [39m[22m[27m[0m  [36mRunning target [1mbuild[22m for project dmr-server and [1m1[22m task it depends on:[39m
+
+
+
+[2m> [22m[2mnx run[22m shared:build  [2m[existing outputs match the cache, left as is][22m
+
+
+[2m> [22m[2mnx run[22m dmr-server:build:development
+
+[2m> [22mwebpack-cli build node-env=development
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 18.7 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (0c8f1f54f978910b)
+
+
+
+[0m[7m[1m[32m NX [39m[22m[27m[0m  [32mSuccessfully ran target [1mbuild[22m for project dmr-server and [1m1[22m task it depends on[39m
+
+[2mNx read the output from the cache instead of running the command for 1 out of 2 tasks.[22m
+
+[1m[31mDebugger listening on ws://localhost:9229/fb128616-0750-433e-8db2-5ce4370d20c3[39m[22m
+[1m[31mDebugger listening on ws://localhost:9229/fb128616-0750-433e-8db2-5ce4370d20c3[39m[22m
+[1m[31mFor help, see: https://nodejs.org/en/docs/inspector[39m[22m
+[1m[31m[39m[22m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +10ms[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCommonModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mHttpModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mHealthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRabbitMQModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCacheModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCentOpsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHealthController {/v1/health}:[39m[38;5;3m +6ms[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/v1/health, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[RabbitMQService] [39m[32mRabbitMQ connected[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[CentOpsService] [39m[32mCron job 'centops_config_fetch' scheduled for: */30 * * * *[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +1ms[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [38;5;3m[bootstrap] [39m[32mListening on http://[::1]:5000[39m
+[32m[Nest] 15084  - [39m12/06/2025, 1:34:52 pm [32m    LOG[39m [32m🚀 Application is running on: http://localhost:5000[39m
+[1m[31mWatch error: Daemon closed the connection[39m[22m

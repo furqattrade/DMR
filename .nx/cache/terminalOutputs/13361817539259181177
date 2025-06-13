@@ -1,0 +1,21 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.3 [39m[90mD:/uzinfocom/DMR[39m
+
+ [32m✓[39m apps/dmr-agent/src/modules/health/health.service.spec.ts[2m > [22mHealthService[2m > [22mshould return ok status[32m 1[2mms[22m[39m
+ [32m✓[39m apps/dmr-server/src/modules/health/health.service.spec.ts[2m > [22mHealthService[2m > [22mshould return ok status[32m 3[2mms[22m[39m
+ [32m✓[39m apps/dmr-server/src/rabbitmq/src/rabbitmq.service.spec.ts[2m > [22mRabbitMQService[2m > [22mshould be defined[32m 7[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Suites 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m apps/dmr-server/src/modules/centops/centops.service.spec.ts[2m [ apps/dmr-server/src/modules/centops/centops.service.spec.ts ][22m
+[31m[1mError[22m: Cannot find module 'D:\uzinfocom\DMR\libs\shared\src\interfaces\centops.interface' imported from D:\uzinfocom\DMR\libs\shared\src\interfaces\index.ts[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22m[39m
+[31m[1mSerialized Error:[22m[39m [90m{ code: 'ERR_MODULE_NOT_FOUND', url: 'file:///D:/uzinfocom/DMR/libs/shared/src/interfaces/centops.interface' }[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m3 passed[39m[22m[90m (4)[39m
+[2m      Tests [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+[2m   Start at [22m 20:52:47
+[2m   Duration [22m 1.58s[2m (transform 154ms, setup 0ms, collect 1.72s, tests 15ms, environment 1ms, prepare 892ms)[22m
+

@@ -1,0 +1,32 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.3 [39m[90mD:/uzinfocom/DMR[39m
+
+ [32m✓[39m apps/dmr-agent/src/modules/health/health.service.spec.ts[2m > [22mHealthService[2m > [22mshould return ok status[32m 2[2mms[22m[39m
+ [32m✓[39m apps/dmr-server/src/modules/health/health.service.spec.ts[2m > [22mHealthService[2m > [22mshould return ok status[32m 2[2mms[22m[39m
+ [32m✓[39m apps/dmr-server/src/rabbitmq/src/rabbitmq.service.spec.ts[2m > [22mRabbitMQService[2m > [22mshould be defined[32m 7[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Suites 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m apps/dmr-server/src/modules/centops/centops.service.spec.ts[2m [ apps/dmr-server/src/modules/centops/centops.service.spec.ts ][22m
+[31m[1mError[22m: Cannot find package '@dmr/shared' imported from 'D:/uzinfocom/DMR/apps/dmr-server/src/modules/centops/centops.service.ts'[39m
+[36m [2m❯[22m apps/dmr-server/src/modules/centops/centops.service.ts:[2m10:1[22m[39m
+    [90m  8| [39m[35mimport[39m { firstValueFrom } [35mfrom[39m [32m'rxjs'[39m[33m;[39m
+    [90m  9| [39m[35mimport[39m { [33mCentOpsConfig[39m[33m,[39m centOpsConfig } [35mfrom[39m [32m'../../common/config'[39m[33m;[39m
+    [90m 10| [39m[35mimport[39m { [33mClientConfigDto[39m[33m,[39m [33mICentOpsResponse[39m } [35mfrom[39m [32m'@dmr/shared'[39m[33m;[39m
+    [90m   | [39m[31m^[39m
+    [90m 11| [39m
+    [90m 12| [39m[33m@[39m[33mInjectable[39m()
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22m[39m
+[31m[1mSerialized Error:[22m[39m [90m{ code: 'ERR_MODULE_NOT_FOUND' }[39m
+[31m[1mCaused by: Error[22m: Failed to load url @dmr/shared (resolved id: @dmr/shared) in D:/uzinfocom/DMR/apps/dmr-server/src/modules/centops/centops.service.ts. Does the file exist?[39m
+[90m [2m❯[22m loadAndTransform node_modules/.pnpm/vite@6.3.5_@types+node@18.1_e4a2135b07a424be9e463bc8dcacaf2b/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:[2m35725:17[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m3 passed[39m[22m[90m (4)[39m
+[2m      Tests [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+[2m   Start at [22m 20:48:32
+[2m   Duration [22m 1.58s[2m (transform 179ms, setup 0ms, collect 1.60s, tests 14ms, environment 1ms, prepare 890ms)[22m
+

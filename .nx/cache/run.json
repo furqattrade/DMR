@@ -1,0 +1,32 @@
+{
+  "run": {
+    "command": "nx run-many --target=test --all",
+    "startTime": "2025-06-13T10:38:28.817Z",
+    "endTime": "2025-06-13T10:38:32.462Z",
+    "inner": false
+  },
+  "tasks": [
+    {
+      "taskId": "dmr-agent:test",
+      "target": "test",
+      "projectName": "dmr-agent",
+      "hash": "10709756595808618809",
+      "startTime": "2025-06-13T10:38:28.939Z",
+      "endTime": "2025-06-13T10:38:32.422Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 0
+    },
+    {
+      "taskId": "dmr-server:test",
+      "target": "test",
+      "projectName": "dmr-server",
+      "hash": "3570489910379093116",
+      "startTime": "2025-06-13T10:38:28.939Z",
+      "endTime": "2025-06-13T10:38:32.459Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 0
+    }
+  ]
+}
