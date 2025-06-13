@@ -10,7 +10,7 @@ out/
 *.tsbuildinfo
 
 # Nx
-.nx/
+.nx
 .nxcache/
 tmp/
 out-tsc/
