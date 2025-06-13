@@ -1,13 +1,13 @@
 import { JwtPayload } from '@dmr/shared';
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { io } from 'socket.io-client';
+import { io, ManagerOptions, Socket, SocketOptions } from 'socket.io-client';
 
 @Injectable()
-export class WebsocketService implements OnModuleInit {
+export class WebsocketService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WebsocketService.name);
-  private socket: SocketClient | null = null;
+  private socket: Socket | null = null;
   private reconnectionAttempts = 0;
 
   constructor(
@@ -15,12 +15,11 @@ export class WebsocketService implements OnModuleInit {
     private readonly jwtService: JwtService,
   ) {}
 
-  async onModuleInit(): Promise<void> {
-    await this.connectToServer();
+  onModuleInit(): void {
+    this.connectToServer();
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  private async connectToServer(): Promise<void> {
+  private connectToServer(): void {
     const requiredConfigs = {
       serverUrl: this.configService.get<string>('DMR_SERVER_WEBSOCKET_URL'),
       agentId: this.configService.get<string>('AGENT_ID'),
@@ -43,21 +42,19 @@ export class WebsocketService implements OnModuleInit {
 
     try {
       const { serverUrl, agentId, privateKey } = requiredConfigs;
-      this.socket = io(serverUrl, {
+      const socketOptions: Partial<ManagerOptions & SocketOptions> = {
         reconnectionDelay: this.configService.get<number>('WEBSOCKET_RECONNECTION_DELAY', 1000),
         reconnectionDelayMax: this.configService.get<number>('WEBSOCKET_DELAY_MAX', 5000),
-        auth: (callback: (data: { token: string }) => void): void => {
-          callback({ token: this.generateJwtToken(agentId, privateKey) });
+        auth: {
+          token: this.generateJwtToken(agentId, privateKey),
         },
-        // @ts-expect-error - Socket.io types don't include connectionStateRecovery yet
-        connectionStateRecovery: {
-          maxDisconnectionDuration: 2 * 60 * 1000,
-        },
-      }) as unknown as SocketClient;
+      };
+
+      this.socket = io(serverUrl, socketOptions);
 
       this.setupSocketEventListeners();
-    } catch (error_) {
-      const errorMessage = error_ instanceof Error ? error_.message : String(error_);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(`Failed to connect to DMR server: ${errorMessage}`);
     }
   }
@@ -84,12 +81,7 @@ export class WebsocketService implements OnModuleInit {
 
     this.socket.on('connect_error', (error: unknown) => {
       this.reconnectionAttempts++;
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : typeof error === 'string'
-            ? error
-            : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(`Connection error (attempt ${this.reconnectionAttempts}): ${errorMessage}`);
     });
 
@@ -99,21 +91,17 @@ export class WebsocketService implements OnModuleInit {
 
     this.socket.on('reconnect_attempt', () => {
       this.logger.log('Attempting to reconnect to DMR server...');
-      // Refresh the JWT token on reconnection attempts
       const agentId = this.configService.get<string>('AGENT_ID');
       const privateKey = this.configService.get<string>('AGENT_PRIVATE_KEY');
       if (agentId && privateKey && this.socket) {
-        this.socket.auth = { token: this.generateJwtToken(agentId, privateKey) };
+        this.socket.auth = {
+          token: this.generateJwtToken(agentId, privateKey),
+        };
       }
     });
 
     this.socket.on('reconnect_error', (error: unknown) => {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : typeof error === 'string'
-            ? error
-            : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(`Reconnection error: ${errorMessage}`);
     });
 
@@ -141,10 +129,14 @@ export class WebsocketService implements OnModuleInit {
     return Boolean(this.socket?.connected);
   }
 
+  onModuleDestroy(): void {
+    this.disconnect();
+    this.logger.log('Socket disconnected on application shutdown');
+  }
+
   disconnect(): void {
     if (this.socket) {
       this.socket.disconnect();
-      this.logger.log('Manually disconnected from DMR server');
     }
   }
 }
