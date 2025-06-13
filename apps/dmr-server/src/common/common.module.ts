@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { configs } from './config';
+import { ScheduleModule } from '@nestjs/schedule';
+import { CacheModule } from '@nestjs/cache-manager';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
@@ -15,6 +18,11 @@ import { configs } from './config';
         abortEarly: true,
       },
     }),
+    ScheduleModule.forRoot(),
+    CacheModule.register({
+      isGlobal: true,
+    }),
+    HttpModule.register({ global: true }),
   ],
 })
 export class CommonModule {}
