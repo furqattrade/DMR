@@ -1,13 +1,12 @@
+import { ClientConfigDto, ICentOpsResponse, Utils } from '@dmr/shared';
 import { HttpService } from '@nestjs/axios';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { firstValueFrom } from 'rxjs';
-
-import { ClientConfigDto, ICentOpsResponse, Utils } from '@dmr/shared';
 import { CronJob } from 'cron';
+import { firstValueFrom } from 'rxjs';
 import { CentOpsConfig, centOpsConfig } from '../../common/config';
 import { RabbitMQService } from '../../libs/rabbitmq';
 

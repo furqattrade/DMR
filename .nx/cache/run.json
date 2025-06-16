@@ -1,32 +1,32 @@
 {
   "run": {
-    "command": "nx run-many --target=test --all",
-    "startTime": "2025-06-13T10:38:28.817Z",
-    "endTime": "2025-06-13T10:38:32.462Z",
+    "command": "nx serve dmr-server",
+    "startTime": "2025-06-16T15:49:30.840Z",
+    "endTime": "2025-06-16T15:49:38.210Z",
     "inner": false
   },
   "tasks": [
     {
-      "taskId": "dmr-agent:test",
-      "target": "test",
-      "projectName": "dmr-agent",
-      "hash": "10709756595808618809",
-      "startTime": "2025-06-13T10:38:28.939Z",
-      "endTime": "2025-06-13T10:38:32.422Z",
+      "taskId": "shared:build",
+      "target": "build",
+      "projectName": "shared",
+      "hash": "2591299535758928370",
+      "startTime": "2025-06-16T15:49:30.946Z",
+      "endTime": "2025-06-16T15:49:32.927Z",
       "params": "",
       "cacheStatus": "cache-miss",
       "status": 0
     },
     {
-      "taskId": "dmr-server:test",
-      "target": "test",
+      "taskId": "dmr-server:build",
+      "target": "build",
       "projectName": "dmr-server",
-      "hash": "3570489910379093116",
-      "startTime": "2025-06-13T10:38:28.939Z",
-      "endTime": "2025-06-13T10:38:32.459Z",
+      "hash": "4049050554909883239",
+      "startTime": "2025-06-16T15:49:32.974Z",
+      "endTime": "2025-06-16T15:49:38.204Z",
       "params": "",
       "cacheStatus": "cache-miss",
-      "status": 0
+      "status": 1
     }
   ]
 }
