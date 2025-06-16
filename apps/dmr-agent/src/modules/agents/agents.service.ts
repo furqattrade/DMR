@@ -1,4 +1,6 @@
-import { AgentEventNames, IAgent, IAgentList } from '@dmr/shared';
+import { AgentDto, AgentEventNames, IAgent, IAgentList } from '@dmr/shared';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
 
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
@@ -63,15 +65,24 @@ export class AgentsService implements OnModuleInit {
       currentAgents.forEach((agent: IAgent) => agentMap.set(agent.id, agent));
 
       const responseItems = Array.isArray(data.response) ? data.response : [];
-      responseItems.forEach((agent: IAgent) => {
-        if (!agent.id) return;
 
-        if (agent.deleted) {
-          agentMap.delete(agent.id);
-        } else {
-          agentMap.set(agent.id, agent);
+      for (const item of responseItems) {
+        if (!item.id) continue;
+
+        const agentDto = plainToInstance(AgentDto, item);
+        const errors = await validate(agentDto);
+
+        if (errors.length > 0) {
+          this.logger.error(`Validation failed for agent: ${JSON.stringify(errors)}`);
+          continue;
         }
-      });
+
+        if (agentDto.deleted) {
+          agentMap.delete(agentDto.id);
+        } else {
+          agentMap.set(agentDto.id, agentDto);
+        }
+      }
 
       const updatedAgents = Array.from(agentMap.values());
 
