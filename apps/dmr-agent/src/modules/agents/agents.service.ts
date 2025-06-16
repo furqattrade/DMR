@@ -48,8 +48,25 @@ export class AgentsService implements OnModuleInit {
 
   private async handleFullAgentListEvent(data: IAgentList): Promise<void> {
     try {
-      await this.cacheManager.set(this.AGENTS_CACHE_KEY, data.response);
-      this.logger.log(`Received full agent list with ${data?.response?.length} active agents`);
+      const responseItems = Array.isArray(data.response) ? data.response : [];
+      const validAgents: IAgent[] = [];
+
+      for (const item of responseItems) {
+        if (!item.id) continue;
+
+        const agentDto = plainToInstance(AgentDto, item);
+        const errors = await validate(agentDto);
+
+        if (errors.length > 0) {
+          this.logger.error(`Validation failed for agent: ${JSON.stringify(errors)}`);
+          continue;
+        }
+
+        validAgents.push(agentDto);
+      }
+
+      await this.cacheManager.set(this.AGENTS_CACHE_KEY, validAgents);
+      this.logger.log(`Received full agent list with ${validAgents.length} active agents`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(`Error handling full agent list: ${errorMessage}`);
