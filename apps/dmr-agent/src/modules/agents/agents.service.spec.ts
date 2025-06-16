@@ -56,14 +56,18 @@ describe('AgentsService', () => {
     expect(setupSpy).toHaveBeenCalled();
   });
 
-  it('should store only non-deleted agents on full list event', async () => {
+  it('should store full agent list on full list event', async () => {
     const data: IAgentList = {
       response: [agent1, deletedAgent, agent2],
     };
 
     await (service as any).handleFullAgentListEvent(data);
 
-    expect(mockCacheManager.set).toHaveBeenCalledWith('DMR_AGENTS_LIST', [agent1, agent2]);
+    expect(mockCacheManager.set).toHaveBeenCalledWith('DMR_AGENTS_LIST', [
+      agent1,
+      deletedAgent,
+      agent2,
+    ]);
   });
 
   it('should update and delete agents correctly on partial list event', async () => {

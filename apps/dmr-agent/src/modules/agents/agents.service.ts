@@ -46,9 +46,8 @@ export class AgentsService implements OnModuleInit {
 
   private async handleFullAgentListEvent(data: IAgentList): Promise<void> {
     try {
-      const activeAgents = data.response.filter((agent) => !agent.deleted);
-      await this.cacheManager.set(this.AGENTS_CACHE_KEY, activeAgents);
-      this.logger.log(`Received full agent list with ${activeAgents.length} active agents`);
+      await this.cacheManager.set(this.AGENTS_CACHE_KEY, data.response);
+      this.logger.log(`Received full agent list with ${data?.response?.length} active agents`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(`Error handling full agent list: ${errorMessage}`);
@@ -57,12 +56,11 @@ export class AgentsService implements OnModuleInit {
 
   private async handlePartialAgentListEvent(data: IAgentList): Promise<void> {
     try {
-      const currentAgents = (await this.cacheManager.get(this.AGENTS_CACHE_KEY)) || [];
+      const currentAgents: IAgent[] =
+        (await this.cacheManager.get<IAgent[]>(this.AGENTS_CACHE_KEY)) ?? [];
 
       const agentMap: Map<string, IAgent> = new Map();
-      if (Array.isArray(currentAgents)) {
-        currentAgents.forEach((agent: IAgent) => agentMap.set(agent.id, agent));
-      }
+      currentAgents.forEach((agent: IAgent) => agentMap.set(agent.id, agent));
 
       if (data.response && Array.isArray(data.response)) {
         data.response.forEach((agent: IAgent) => {
@@ -89,7 +87,7 @@ export class AgentsService implements OnModuleInit {
 
   async getAllAgents(): Promise<IAgent[]> {
     try {
-      const agents: IAgent[] = (await this.cacheManager.get(this.AGENTS_CACHE_KEY)) || [];
+      const agents: IAgent[] = (await this.cacheManager.get<IAgent[]>(this.AGENTS_CACHE_KEY)) ?? [];
       return agents;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
@@ -100,7 +98,7 @@ export class AgentsService implements OnModuleInit {
 
   async getAgentById(id: string): Promise<IAgent | null> {
     try {
-      const agents: IAgent[] = (await this.cacheManager.get(this.AGENTS_CACHE_KEY)) || [];
+      const agents: IAgent[] = (await this.cacheManager.get<IAgent[]>(this.AGENTS_CACHE_KEY)) ?? [];
       return agents.find((agent) => agent.id === id) || null;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
