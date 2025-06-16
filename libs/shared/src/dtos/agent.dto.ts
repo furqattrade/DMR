@@ -12,15 +12,15 @@ export class AgentDto implements IAgent {
 
   @IsString()
   @IsOptional()
-  authenticationCertificate?: string;
+  authentication_certificate: string;
 
   @IsString()
   @IsOptional()
-  createdAt?: string;
+  created_at: string;
 
   @IsString()
   @IsOptional()
-  updatedAt?: string;
+  updated_at: string;
 
   @IsBoolean()
   @IsOptional()
