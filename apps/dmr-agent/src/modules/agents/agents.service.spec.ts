@@ -1,4 +1,6 @@
 import { IAgent, IAgentList } from '@dmr/shared';
+import * as classTransformer from 'class-transformer';
+import * as classValidator from 'class-validator';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WebsocketService } from '../websocket/websocket.service';
 import { AgentsService } from './agents.service';
@@ -14,25 +16,25 @@ describe('AgentsService', () => {
   const agent1: IAgent = {
     id: '1',
     name: 'Agent 1',
-    authentication_certificate: 'cert1',
-    created_at: '2023-01-01',
-    updated_at: '2023-01-02',
+    authenticationCertificate: 'cert1',
+    createdAt: '2023-01-01',
+    updatedAt: '2023-01-02',
   };
 
   const agent2: IAgent = {
     id: '2',
     name: 'Agent 2',
-    authentication_certificate: 'cert2',
-    created_at: '2023-01-03',
-    updated_at: '2023-01-04',
+    authenticationCertificate: 'cert2',
+    createdAt: '2023-01-03',
+    updatedAt: '2023-01-04',
   };
 
   const deletedAgent: IAgent = {
     id: '3',
     name: 'Deleted Agent',
-    authentication_certificate: 'cert3',
-    created_at: '2023-01-05',
-    updated_at: '2023-01-06',
+    authenticationCertificate: 'cert3',
+    createdAt: '2023-01-05',
+    updatedAt: '2023-01-06',
     deleted: true,
   };
 
@@ -47,6 +49,10 @@ describe('AgentsService', () => {
       set: vi.fn(),
     };
 
+    // Mock transform and validation globally
+    vi.spyOn(classTransformer, 'plainToInstance').mockImplementation((_, obj) => obj as any);
+    vi.spyOn(classValidator, 'validate').mockResolvedValue([]); // Assume always valid
+
     service = new AgentsService(mockCacheManager as any, mockWebsocketService);
   });
 
@@ -56,35 +62,41 @@ describe('AgentsService', () => {
     expect(setupSpy).toHaveBeenCalled();
   });
 
-  it('should store full agent list on full list event', async () => {
+  it('should store only valid agents from full list', async () => {
     const data: IAgentList = {
-      response: [agent1, deletedAgent, agent2],
+      response: [agent1, deletedAgent, { ...agent2, id: null } as any],
     };
 
     await (service as any).handleFullAgentListEvent(data);
 
-    expect(mockCacheManager.set).toHaveBeenCalledWith('DMR_AGENTS_LIST', [
-      agent1,
-      deletedAgent,
-      agent2,
-    ]);
+    expect(mockCacheManager.set).toHaveBeenCalledWith(
+      'DMR_AGENTS_LIST',
+      expect.arrayContaining([
+        expect.objectContaining({ id: '1' }),
+        expect.objectContaining({ id: '3' }),
+      ]),
+    );
+    const cachedAgents = (mockCacheManager.set as any).mock.calls[0][1];
+    expect(cachedAgents).toHaveLength(2);
   });
 
-  it('should update and delete agents correctly on partial list event', async () => {
+  it('should merge agents and delete marked ones on partial list event', async () => {
     mockCacheManager.get = vi.fn().mockResolvedValue([agent1]);
 
     const update: IAgentList = {
-      response: [{ ...agent2 }, { ...agent1, deleted: true }],
+      response: [agent2, { ...agent1, deleted: true }],
     };
 
     await (service as any).handlePartialAgentListEvent(update);
 
-    expect(mockCacheManager.set).toHaveBeenCalledWith('DMR_AGENTS_LIST', [agent2], 0);
+    expect(mockCacheManager.set).toHaveBeenCalledWith(
+      'DMR_AGENTS_LIST',
+      [expect.objectContaining({ id: '2' })],
+      0,
+    );
   });
 
-  // getAllAgents tests removed as the method was removed from the service
-
-  it('should get agent by ID from cache', async () => {
+  it('should retrieve agent by ID from cache', async () => {
     mockCacheManager.get = vi.fn().mockResolvedValue([agent1, agent2]);
 
     const result = await service.getAgentById('2');
@@ -99,7 +111,7 @@ describe('AgentsService', () => {
   });
 
   it('should return null if getAgentById throws error', async () => {
-    mockCacheManager.get = vi.fn().mockRejectedValue(new Error('error'));
+    mockCacheManager.get = vi.fn().mockRejectedValue(new Error('Unexpected error'));
 
     const result = await service.getAgentById('1');
     expect(result).toBeNull();

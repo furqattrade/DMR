@@ -1,8 +1,8 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 import { IAgent } from '../interfaces/agent.interface';
 
 export class AgentDto implements IAgent {
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
   id: string;
 
@@ -12,15 +12,15 @@ export class AgentDto implements IAgent {
 
   @IsString()
   @IsNotEmpty()
-  authentication_certificate: string;
+  authenticationCertificate: string;
 
   @IsString()
-  @IsOptional()
-  created_at: string;
+  @IsNotEmpty()
+  createdAt: string;
 
   @IsString()
-  @IsOptional()
-  updated_at: string;
+  @IsNotEmpty()
+  updatedAt: string;
 
   @IsBoolean()
   @IsOptional()
