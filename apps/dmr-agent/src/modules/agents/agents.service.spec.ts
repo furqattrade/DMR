@@ -82,19 +82,7 @@ describe('AgentsService', () => {
     expect(mockCacheManager.set).toHaveBeenCalledWith('DMR_AGENTS_LIST', [agent2], 0);
   });
 
-  it('should get all agents from cache', async () => {
-    mockCacheManager.get = vi.fn().mockResolvedValue([agent1, agent2]);
-
-    const result = await service.getAllAgents();
-    expect(result).toEqual([agent1, agent2]);
-  });
-
-  it('should return empty list on getAllAgents error', async () => {
-    mockCacheManager.get = vi.fn().mockRejectedValue(new Error('Cache error'));
-
-    const result = await service.getAllAgents();
-    expect(result).toEqual([]);
-  });
+  // getAllAgents tests removed as the method was removed from the service
 
   it('should get agent by ID from cache', async () => {
     mockCacheManager.get = vi.fn().mockResolvedValue([agent1, agent2]);

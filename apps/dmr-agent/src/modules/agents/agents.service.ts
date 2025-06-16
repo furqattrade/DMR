@@ -62,19 +62,16 @@ export class AgentsService implements OnModuleInit {
       const agentMap: Map<string, IAgent> = new Map();
       currentAgents.forEach((agent: IAgent) => agentMap.set(agent.id, agent));
 
-      if (data.response && Array.isArray(data.response)) {
-        data.response.forEach((agent: IAgent) => {
-          if (agent.id) {
-            if (agent.deleted) {
-              if (agentMap.has(agent.id)) {
-                agentMap.delete(agent.id);
-              }
-            } else {
-              agentMap.set(agent.id, agent);
-            }
-          }
-        });
-      }
+      const responseItems = Array.isArray(data.response) ? data.response : [];
+      responseItems.forEach((agent: IAgent) => {
+        if (!agent.id) return;
+
+        if (agent.deleted) {
+          agentMap.delete(agent.id);
+        } else {
+          agentMap.set(agent.id, agent);
+        }
+      });
 
       const updatedAgents = Array.from(agentMap.values());
 
@@ -82,17 +79,6 @@ export class AgentsService implements OnModuleInit {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(`Error handling partial agent list: ${errorMessage}`);
-    }
-  }
-
-  async getAllAgents(): Promise<IAgent[]> {
-    try {
-      const agents: IAgent[] = (await this.cacheManager.get<IAgent[]>(this.AGENTS_CACHE_KEY)) ?? [];
-      return agents;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
-      this.logger.error(`Error getting agents: ${errorMessage}`);
-      return [];
     }
   }
 
