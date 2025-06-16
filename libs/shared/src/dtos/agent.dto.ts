@@ -11,7 +11,7 @@ export class AgentDto implements IAgent {
   name: string;
 
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
   authentication_certificate: string;
 
   @IsString()
