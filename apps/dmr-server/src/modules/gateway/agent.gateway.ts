@@ -1,16 +1,16 @@
-import {
-  WebSocketGateway,
-  SubscribeMessage,
-  MessageBody,
-  ConnectedSocket,
-  WebSocketServer,
-  OnGatewayDisconnect,
-  OnGatewayConnection,
-} from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
+import {
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
+} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { AuthService } from '../auth/auth.service';
 import { RabbitMQService } from '../../libs/rabbitmq';
+import { AuthService } from '../auth/auth.service';
 
 @WebSocketGateway({
   connectionStateRecovery: {
