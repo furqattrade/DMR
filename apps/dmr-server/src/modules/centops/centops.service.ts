@@ -1,12 +1,12 @@
 import { HttpService } from '@nestjs/axios';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { firstValueFrom } from 'rxjs';
 
-import { ClientConfigDto, ICentOpsResponse, Utils } from '@dmr/shared';
+import { ClientConfigDto, IGetAgentConfigListResponse, Utils } from '@dmr/shared';
 import { CronJob } from 'cron';
 import { CentOpsConfig, centOpsConfig } from '../../common/config';
 import { RabbitMQService } from '../../libs/rabbitmq';
@@ -46,10 +46,30 @@ export class CentOpsService implements OnModuleInit {
     );
   }
 
+  async getCentOpsConfigurationByClientId(clientId: string): Promise<ClientConfigDto | null> {
+    const centOpsConfigs =
+      (await this.cacheManager.get<ClientConfigDto[]>(this.CENT_OPS_CONFIG_CACHE_KEY)) || [];
+
+    if (centOpsConfigs.length === 0) {
+      this.logger.error('CentOps configuration is empty');
+
+      throw new BadRequestException('CentOps configuration is empty');
+    }
+
+    const clientConfig = centOpsConfigs.find((config) => config.id === clientId);
+    if (!clientConfig) {
+      this.logger.error(`Client configuration not found by ${clientId}`);
+
+      throw new BadRequestException('Client configuration not found');
+    }
+
+    return clientConfig;
+  }
+
   async syncConfiguration(): Promise<ClientConfigDto[] | undefined> {
     try {
       const { data } = await firstValueFrom(
-        this.httpService.get<ICentOpsResponse>(this.centOpsConfig.url),
+        this.httpService.get<IGetAgentConfigListResponse>(this.centOpsConfig.url),
       );
 
       const configurations =
@@ -89,15 +109,19 @@ export class CentOpsService implements OnModuleInit {
         newConfigurations.push(clientConfig);
       }
 
-      for (const deletedConfiguration of configurations.values()) {
-        await this.rabbitMQService.deleteQueue(deletedConfiguration.id);
+      const checkDuplicates = [...new Set([...newConfigurations, ...configurations])];
+
+      if (checkDuplicates.length !== 0) {
+        for (const deletedConfiguration of Object.values(configurationsMap)) {
+          await this.rabbitMQService.deleteQueue(deletedConfiguration.id);
+        }
+
+        await this.cacheManager.set(this.CENT_OPS_CONFIG_CACHE_KEY, newConfigurations);
+
+        this.logger.log('CentOps configuration updated and stored in memory.');
+
+        return newConfigurations;
       }
-
-      await this.cacheManager.set(this.CENT_OPS_CONFIG_CACHE_KEY, newConfigurations);
-
-      this.logger.log('CentOps configuration updated and stored in memory.');
-
-      return newConfigurations;
     } catch (error: unknown) {
       if (error instanceof Error) {
         this.logger.error(
