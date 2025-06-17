@@ -1,11 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from '../auth/auth.service';
 import { RabbitMQService } from '../../libs/rabbitmq';
-import { Logger } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { beforeEach, describe, it, expect, vi, afterEach } from 'vitest';
-import { JwtPayload } from '@dmr/shared';
+import { AgentMessageDto, JwtPayload } from '@dmr/shared';
 import { AgentGateway } from './agent.gateway';
+import { MessageValidatorService } from './message-validator.service';
 
 declare module 'socket.io' {
   interface Socket {
@@ -22,12 +23,17 @@ const mockRabbitMQService = {
   unsubscribe: vi.fn(),
 };
 
+const mockMessageValidatorService = {
+  validateMessage: vi.fn(),
+};
+
 describe('AgentGateway', () => {
   let gateway: AgentGateway;
   let authService: AuthService;
   let rabbitService: RabbitMQService;
   let loggerSpy: ReturnType<typeof vi.spyOn>;
   let loggerErrorSpy: ReturnType<typeof vi.spyOn>;
+  let loggerWarnSpy: ReturnType<typeof vi.spyOn>;
   let serverMock: Server;
 
   const createMockSocket = (token?: string, agentPayload?: any, id?: string): Socket => {
@@ -67,6 +73,10 @@ describe('AgentGateway', () => {
           provide: RabbitMQService,
           useValue: mockRabbitMQService,
         },
+        {
+          provide: MessageValidatorService,
+          useValue: mockMessageValidatorService,
+        },
       ],
     }).compile();
 
@@ -84,6 +94,7 @@ describe('AgentGateway', () => {
 
     loggerSpy = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
     loggerErrorSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+    loggerWarnSpy = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
 
     vi.clearAllMocks();
   });
@@ -91,6 +102,7 @@ describe('AgentGateway', () => {
   afterEach(() => {
     loggerSpy.mockRestore();
     loggerErrorSpy.mockRestore();
+    loggerWarnSpy.mockRestore();
     vi.restoreAllMocks();
   });
 
@@ -344,7 +356,6 @@ describe('AgentGateway', () => {
 
       mockRabbitMQService.unsubscribe.mockRejectedValueOnce(rabbitmqError);
 
-      // The method doesn't throw errors anymore, it handles them internally
       await expect(gateway.handleDisconnect(client)).rejects.toThrow('Failed to unsubscribe');
 
       expect(mockRabbitMQService.unsubscribe).toHaveBeenCalledWith(mockAgentId);
@@ -362,65 +373,6 @@ describe('AgentGateway', () => {
       );
     });
   });
-
-  describe('handleMessage', () => {
-    it('should log the received message', () => {
-      const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
-      const messageData = 'Hello DMR!';
-
-      gateway.handleMessage(client, messageData);
-
-      expect(loggerSpy).toHaveBeenCalledWith(`${client.id} sent message to DMR: ${messageData}`);
-    });
-
-    it('should handle empty message', () => {
-      const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
-      const messageData = '';
-
-      gateway.handleMessage(client, messageData);
-
-      expect(loggerSpy).toHaveBeenCalledWith(`${client.id} sent message to DMR: ${messageData}`);
-    });
-
-    it('should handle null/undefined message', () => {
-      const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
-
-      gateway.handleMessage(client, null as any);
-      expect(loggerSpy).toHaveBeenCalledWith(`${client.id} sent message to DMR: null`);
-
-      gateway.handleMessage(client, undefined as any);
-      expect(loggerSpy).toHaveBeenCalledWith(`${client.id} sent message to DMR: undefined`);
-    });
-
-    it('should handle object message', () => {
-      const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
-      const messageData = { type: 'test', payload: 'data' };
-
-      gateway.handleMessage(client, messageData as any);
-
-      expect(loggerSpy).toHaveBeenCalledWith(`${client.id} sent message to DMR: [object Object]`);
-    });
-
-    it('should handle numeric message', () => {
-      const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
-      const messageData = 12345;
-
-      gateway.handleMessage(client, messageData as any);
-
-      expect(loggerSpy).toHaveBeenCalledWith(`${client.id} sent message to DMR: 12345`);
-    });
-
-    it('should handle boolean message', () => {
-      const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
-
-      gateway.handleMessage(client, true as any);
-      expect(loggerSpy).toHaveBeenCalledWith(`${client.id} sent message to DMR: true`);
-
-      gateway.handleMessage(client, false as any);
-      expect(loggerSpy).toHaveBeenCalledWith(`${client.id} sent message to DMR: false`);
-    });
-  });
-
   describe('Error handling edge cases', () => {
     it('should handle verifyToken throwing non-Error objects', async () => {
       const token = 'valid.token';
@@ -465,6 +417,114 @@ describe('AgentGateway', () => {
       expect(loggerErrorSpy).toHaveBeenCalledWith(
         `Error during agent socket connection: ${client.id}`,
         'AgentGateway',
+      );
+    });
+  });
+
+  describe('handleMessage', () => {
+    it('should log a success message when message validation succeeds', async () => {
+      const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
+      const messageData = { id: 'msg-123', senderId: 'agent-1', recipientId: 'agent-2' };
+      const validatedMessage: AgentMessageDto = {
+        id: 'msg-123',
+        timestamp: new Date().toISOString(),
+        senderId: 'agent-1',
+        recipientId: 'agent-2',
+        payload: 'test payload',
+        type: 'TEST_MESSAGE',
+      };
+
+      mockMessageValidatorService.validateMessage.mockResolvedValueOnce(validatedMessage);
+
+      await gateway.handleMessage(client, messageData);
+
+      expect(mockMessageValidatorService.validateMessage).toHaveBeenCalledWith(messageData);
+      expect(loggerSpy).toHaveBeenCalledWith(
+        `Received valid message from agent ${validatedMessage.senderId} to ${validatedMessage.recipientId} (ID: ${validatedMessage.id})`,
+      );
+    });
+
+    it('should log a warning with BadRequestException message when validation fails with BadRequestException', async () => {
+      const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
+      const messageData = { invalid: 'data' };
+      const error = new BadRequestException('Invalid message structure');
+
+      mockMessageValidatorService.validateMessage.mockRejectedValueOnce(error);
+
+      await gateway.handleMessage(client, messageData);
+
+      expect(mockMessageValidatorService.validateMessage).toHaveBeenCalledWith(messageData);
+      expect(loggerSpy).not.toHaveBeenCalledWith(expect.stringContaining('Received valid message'));
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        `Invalid message received: Invalid message structure`,
+      );
+    });
+
+    it('should log a generic warning when validation fails with non-BadRequestException error', async () => {
+      const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
+      const messageData = { problematic: 'data' };
+      const error = new Error('Some unexpected error');
+
+      mockMessageValidatorService.validateMessage.mockRejectedValueOnce(error);
+
+      await gateway.handleMessage(client, messageData);
+
+      expect(mockMessageValidatorService.validateMessage).toHaveBeenCalledWith(messageData);
+      expect(loggerSpy).not.toHaveBeenCalledWith(expect.stringContaining('Received valid message'));
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        `Invalid message received: Invalid message format`,
+      );
+    });
+
+    it('should handle null/undefined message data gracefully', async () => {
+      const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
+
+      mockMessageValidatorService.validateMessage.mockRejectedValueOnce(
+        new BadRequestException('Message cannot be null'),
+      );
+
+      await gateway.handleMessage(client, null);
+
+      expect(mockMessageValidatorService.validateMessage).toHaveBeenCalledWith(null);
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        `Invalid message received: Message cannot be null`,
+      );
+    });
+  });
+
+  describe('handleMessage additional edge cases', () => {
+    it('should correctly handle complex message objects with nested properties', async () => {
+      const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
+      const complexMessageData = {
+        id: 'complex-123',
+        metadata: {
+          origin: 'test-system',
+          priority: 'high',
+          tags: ['test', 'complex'],
+        },
+        nestedPayload: {
+          content: 'nested content',
+          timestamp: new Date().toISOString(),
+          values: [1, 2, 3],
+        },
+      };
+
+      const validatedMessage: AgentMessageDto = {
+        id: 'complex-123',
+        timestamp: new Date().toISOString(),
+        senderId: 'complex-sender',
+        recipientId: 'complex-recipient',
+        payload: JSON.stringify(complexMessageData.nestedPayload),
+        type: 'COMPLEX_MESSAGE',
+      };
+
+      mockMessageValidatorService.validateMessage.mockResolvedValueOnce(validatedMessage);
+
+      await gateway.handleMessage(client, complexMessageData);
+
+      expect(mockMessageValidatorService.validateMessage).toHaveBeenCalledWith(complexMessageData);
+      expect(loggerSpy).toHaveBeenCalledWith(
+        `Received valid message from agent ${validatedMessage.senderId} to ${validatedMessage.recipientId} (ID: ${validatedMessage.id})`,
       );
     });
   });
