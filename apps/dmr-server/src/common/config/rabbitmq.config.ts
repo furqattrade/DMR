@@ -9,6 +9,7 @@ export const rabbitMQConfig = registerAs(RABBITMQ_CONFIG_TOKEN, () => ({
   port: Number(process.env.RABBITMQ_DEFAULT_PORT ?? 5672),
   hostname: process.env.RABBITMQ_DEFAULT_HOST ?? 'localhost',
   dlqTTL: Number(process.env.RABBITMQ_DEFAULT_DLQ_TTL ?? 86400000),
+  validationFailuresTTL: Number(process.env.RABBITMQ_VALIDATION_FAILURES_TTL ?? 86400000), // 24 hours by default
   reconnectInterval: Number(process.env.RABBITMQ_DEFAULT_DEFAULT_RECONNECT_INTERVAL ?? 5000),
 }));
 

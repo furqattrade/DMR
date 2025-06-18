@@ -9,9 +9,10 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { AgentEventNames } from '@dmr/shared';
-import { RabbitMQService } from '../../libs/rabbitmq';
+import { AgentEventNames, ValidationErrorDto } from '@dmr/shared';
 import { AuthService } from '../auth/auth.service';
+import { RabbitMQService } from '../../libs/rabbitmq/rabbitmq.service';
+import { RabbitMQMessageService } from '../../libs/rabbitmq/rabbitmq-message.service';
 import { MessageValidatorService } from './message-validator.service';
 
 @WebSocketGateway({
@@ -30,6 +31,7 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly authService: AuthService,
     private readonly rabbitService: RabbitMQService,
     private readonly messageValidator: MessageValidatorService,
+    private readonly rabbitMQMessageService: RabbitMQMessageService,
   ) {}
 
   async handleConnection(@ConnectedSocket() client: Socket): Promise<void> {
@@ -67,17 +69,69 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: unknown,
   ): Promise<void> {
+    const receivedAt = new Date().toISOString();
     try {
-      const validatedMessage = await this.messageValidator.validateMessage(data);
-      this.logger.log(
-        `Received valid message from agent ${validatedMessage.senderId} to ${validatedMessage.recipientId} (ID: ${validatedMessage.id})`,
-      );
+      const result = await this.messageValidator.validateMessage(data, receivedAt);
+      await this.handleValidMessage(result, receivedAt);
     } catch (error: unknown) {
-      let errorMessage = 'Invalid message format';
-      if (error instanceof BadRequestException) {
-        errorMessage = error.message;
+      await this.handleMessageError(error);
+    }
+  }
+
+  private async handleValidMessage(
+    result:
+      | { message: AgentMessageDto; validationErrors?: ValidationErrorDto[] }
+      | null
+      | undefined,
+    receivedAt: string,
+  ): Promise<void> {
+    // Ensure result and message exist before proceeding
+    if (!result || !result.message) {
+      throw new Error('Validation succeeded but no message was returned');
+    }
+
+    // Use type assertion to ensure TypeScript knows this is an AgentMessageDto
+    const validatedMessage: AgentMessageDto = result.message;
+    await this.rabbitMQMessageService.sendValidMessage(validatedMessage, receivedAt);
+    this.logger.log(
+      `Received valid message from agent ${validatedMessage.senderId} to ${validatedMessage.recipientId} (ID: ${validatedMessage.id})`,
+    );
+  }
+
+  private async handleMessageError(error: unknown): Promise<void> {
+    // Handle validation failures
+    if (error instanceof BadRequestException) {
+      const errorData = error.getResponse() as {
+        message: string;
+        validationErrors?: ValidationErrorDto[];
+        originalMessage?: unknown;
+        receivedAt?: string;
+      };
+
+      // Send validation failure to the queue
+      if (
+        errorData &&
+        typeof errorData === 'object' &&
+        errorData.validationErrors &&
+        Array.isArray(errorData.validationErrors) &&
+        errorData.originalMessage !== undefined &&
+        typeof errorData.receivedAt === 'string'
+      ) {
+        await this.rabbitMQMessageService.sendValidationFailure(
+          errorData.originalMessage,
+          errorData.validationErrors,
+          errorData.receivedAt,
+        );
       }
-      this.logger.warn(`Invalid message received: ${errorMessage}`);
+
+      this.logger.warn(
+        `Invalid message received: ${typeof errorData.message === 'string' ? errorData.message : 'Validation error'}`,
+      );
+    } else {
+      // Handle unexpected errors
+      this.logger.error(
+        `Unexpected error processing message: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 }

@@ -1,4 +1,4 @@
-import { IsArray, IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, IsArray } from 'class-validator';
 import { ValidationErrorType } from '../enums';
 import { AgentMessageDto } from './agent-message.dto';
 

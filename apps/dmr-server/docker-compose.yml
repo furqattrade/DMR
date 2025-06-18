@@ -1,6 +1,8 @@
 services:
   rabbitmq:
-    image: rabbitmq:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.rabbitmq
     container_name: rabbitmq
     restart: always
     ports:
@@ -8,16 +10,35 @@ services:
       - 15672:15672
     env_file:
       - .env
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+      - RABBITMQ_VALIDATION_FAILURES_TTL=86400000
     configs:
       - source: rabbitmq-plugins
         target: /etc/rabbitmq/enabled_plugins
+      - source: rabbitmq-config
+        target: /etc/rabbitmq/rabbitmq.conf
     volumes:
       - rabbitmq_lib:/var/lib/rabbitmq/
       - rabbitmq_log:/var/log/rabbitmq
+      - ./init-rabbit.sh:/init-rabbit.sh
+    entrypoint: ['/bin/bash', '-c', '/init-rabbit.sh']
 
 configs:
   rabbitmq-plugins:
     content: '[rabbitmq_management].'
+  rabbitmq-config:
+    content: |
+      # RabbitMQ Configuration
+      default_user = ${RABBITMQ_DEFAULT_USER}
+      default_pass = ${RABBITMQ_DEFAULT_PASS}
+
+      # Listeners
+      listeners.tcp.default = 5672
+
+      # Set default queue type to quorum
+      default_queue_type = quorum
 
 volumes:
   rabbitmq_lib:

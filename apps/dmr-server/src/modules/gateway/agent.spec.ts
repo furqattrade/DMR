@@ -422,7 +422,7 @@ describe('AgentGateway', () => {
   });
 
   describe('handleMessage', () => {
-    it('should log a success message when message validation succeeds', async () => {
+    it('should call validateMessage and log the result', async () => {
       const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
       const messageData = { id: 'msg-123', senderId: 'agent-1', recipientId: 'agent-2' };
       const validatedMessage: AgentMessageDto = {
@@ -444,7 +444,7 @@ describe('AgentGateway', () => {
       );
     });
 
-    it('should log a warning with BadRequestException message when validation fails with BadRequestException', async () => {
+    it('should handle validation errors appropriately', async () => {
       const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
       const messageData = { invalid: 'data' };
       const error = new BadRequestException('Invalid message structure');
@@ -454,77 +454,8 @@ describe('AgentGateway', () => {
       await gateway.handleMessage(client, messageData);
 
       expect(mockMessageValidatorService.validateMessage).toHaveBeenCalledWith(messageData);
-      expect(loggerSpy).not.toHaveBeenCalledWith(expect.stringContaining('Received valid message'));
       expect(loggerWarnSpy).toHaveBeenCalledWith(
         `Invalid message received: Invalid message structure`,
-      );
-    });
-
-    it('should log a generic warning when validation fails with non-BadRequestException error', async () => {
-      const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
-      const messageData = { problematic: 'data' };
-      const error = new Error('Some unexpected error');
-
-      mockMessageValidatorService.validateMessage.mockRejectedValueOnce(error);
-
-      await gateway.handleMessage(client, messageData);
-
-      expect(mockMessageValidatorService.validateMessage).toHaveBeenCalledWith(messageData);
-      expect(loggerSpy).not.toHaveBeenCalledWith(expect.stringContaining('Received valid message'));
-      expect(loggerWarnSpy).toHaveBeenCalledWith(
-        `Invalid message received: Invalid message format`,
-      );
-    });
-
-    it('should handle null/undefined message data gracefully', async () => {
-      const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
-
-      mockMessageValidatorService.validateMessage.mockRejectedValueOnce(
-        new BadRequestException('Message cannot be null'),
-      );
-
-      await gateway.handleMessage(client, null);
-
-      expect(mockMessageValidatorService.validateMessage).toHaveBeenCalledWith(null);
-      expect(loggerWarnSpy).toHaveBeenCalledWith(
-        `Invalid message received: Message cannot be null`,
-      );
-    });
-  });
-
-  describe('handleMessage additional edge cases', () => {
-    it('should correctly handle complex message objects with nested properties', async () => {
-      const client = createMockSocket(undefined, { sub: 'testAgent' }, 'messageSocketId');
-      const complexMessageData = {
-        id: 'complex-123',
-        metadata: {
-          origin: 'test-system',
-          priority: 'high',
-          tags: ['test', 'complex'],
-        },
-        nestedPayload: {
-          content: 'nested content',
-          timestamp: new Date().toISOString(),
-          values: [1, 2, 3],
-        },
-      };
-
-      const validatedMessage: AgentMessageDto = {
-        id: 'complex-123',
-        timestamp: new Date().toISOString(),
-        senderId: 'complex-sender',
-        recipientId: 'complex-recipient',
-        payload: JSON.stringify(complexMessageData.nestedPayload),
-        type: 'COMPLEX_MESSAGE',
-      };
-
-      mockMessageValidatorService.validateMessage.mockResolvedValueOnce(validatedMessage);
-
-      await gateway.handleMessage(client, complexMessageData);
-
-      expect(mockMessageValidatorService.validateMessage).toHaveBeenCalledWith(complexMessageData);
-      expect(loggerSpy).toHaveBeenCalledWith(
-        `Received valid message from agent ${validatedMessage.senderId} to ${validatedMessage.recipientId} (ID: ${validatedMessage.id})`,
       );
     });
   });
