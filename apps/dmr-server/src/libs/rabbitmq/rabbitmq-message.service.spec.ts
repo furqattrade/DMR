@@ -4,12 +4,7 @@ import { Logger } from '@nestjs/common';
 import { RabbitMQMessageService } from './rabbitmq-message.service';
 import { RabbitMQService } from './rabbitmq.service';
 import { RABBITMQ_CONFIG_TOKEN } from '../../common/config';
-import { ValidationErrorType } from '@dmr/shared';
-
-// Mock crypto for consistent UUID generation in tests
-vi.mock('node:crypto', () => ({
-  randomUUID: vi.fn().mockReturnValue('mocked-uuid'),
-}));
+import { MessageType, ValidationErrorType } from '@dmr/shared';
 
 describe('RabbitMQMessageService', () => {
   let service: RabbitMQMessageService;
@@ -21,19 +16,16 @@ describe('RabbitMQMessageService', () => {
   };
 
   beforeEach(async () => {
-    // Create channel mock with all required methods
     channelMock = {
       sendToQueue: vi.fn().mockReturnValue(true),
     };
 
-    // Create RabbitMQService mock
     const rabbitMQServiceMock = {
       channel: channelMock,
       checkQueue: vi.fn().mockResolvedValue(true),
       setupQueue: vi.fn().mockResolvedValue(true),
     };
 
-    // Mock Logger to prevent console output during tests
     vi.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
     vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
     vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
@@ -55,6 +47,8 @@ describe('RabbitMQMessageService', () => {
 
     service = module.get<RabbitMQMessageService>(RabbitMQMessageService);
     rabbitMQService = module.get<RabbitMQService>(RabbitMQService);
+
+    vi.spyOn(service as any, 'generateUuid').mockReturnValue('mocked-uuid');
   });
 
   it('should be defined', () => {
@@ -65,7 +59,6 @@ describe('RabbitMQMessageService', () => {
     it('should log success when validation failures queue exists', async () => {
       const logSpy = vi.spyOn(Logger.prototype, 'log');
 
-      // Call the private method using type assertion
       await (service as any).setupValidationFailuresQueue();
 
       expect(rabbitMQService.checkQueue).toHaveBeenCalledWith('validation-failures');
@@ -74,15 +67,15 @@ describe('RabbitMQMessageService', () => {
       );
     });
 
-    it('should throw error when validation failures queue does not exist', async () => {
+    it('should log error when validation failures queue does not exist', async () => {
       vi.spyOn(rabbitMQService, 'checkQueue').mockResolvedValueOnce(false);
       const errorSpy = vi.spyOn(Logger.prototype, 'error');
 
-      await expect((service as any).setupValidationFailuresQueue()).rejects.toThrow(
+      await (service as any).setupValidationFailuresQueue();
+
+      expect(errorSpy).toHaveBeenCalledWith(
         expect.stringContaining("Validation failures queue 'validation-failures' not found"),
       );
-
-      expect(errorSpy).toHaveBeenCalled();
     });
 
     it('should handle errors when checking queue', async () => {
@@ -103,9 +96,10 @@ describe('RabbitMQMessageService', () => {
       id: 'test-message-id',
       senderId: 'sender-123',
       recipientId: 'recipient-456',
-      type: 'TEST',
+      type: MessageType.Message,
       timestamp: '2023-01-01T12:00:00.000Z',
       content: { test: 'data' },
+      payload: 'test-payload',
     };
     const mockReceivedAt = '2023-01-01T12:00:05.000Z';
 
@@ -120,7 +114,6 @@ describe('RabbitMQMessageService', () => {
         expect.objectContaining({ persistent: true }),
       );
 
-      // Verify the message content
       const sentMessage = JSON.parse(channelMock.sendToQueue.mock.calls[0][1].toString());
       expect(sentMessage).toEqual({
         ...mockMessage,
@@ -191,7 +184,6 @@ describe('RabbitMQMessageService', () => {
         expect.objectContaining({ persistent: true }),
       );
 
-      // Verify the failure message content
       const sentMessage = JSON.parse(channelMock.sendToQueue.mock.calls[0][1].toString());
       expect(sentMessage).toEqual({
         id: 'original-id',
@@ -249,38 +241,6 @@ describe('RabbitMQMessageService', () => {
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('Failed to send validation failure message'),
       );
-    });
-  });
-
-  // Tests for createValidationError removed as the method has been moved to MessageValidatorService
-
-  describe('getPropertySafely', () => {
-    it('should return property value when it exists', () => {
-      const obj = { test: 'value' };
-
-      const result = (service as any).getPropertySafely(obj, 'test', 'default');
-
-      expect(result).toBe('value');
-    });
-
-    it('should return default value when property does not exist', () => {
-      const obj = { other: 'value' };
-
-      const result = (service as any).getPropertySafely(obj, 'test', 'default');
-
-      expect(result).toBe('default');
-    });
-
-    it('should return default value when input is not an object', () => {
-      const result = (service as any).getPropertySafely('string', 'test', 'default');
-
-      expect(result).toBe('default');
-    });
-
-    it('should return default value when input is null', () => {
-      const result = (service as any).getPropertySafely(null, 'test', 'default');
-
-      expect(result).toBe('default');
     });
   });
 });

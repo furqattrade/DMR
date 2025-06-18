@@ -1,3 +1,4 @@
+import { AgentEventNames, AgentMessageDto, ValidationErrorDto } from '@dmr/shared';
 import { BadRequestException, Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
@@ -9,16 +10,11 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { AgentEventNames, ValidationErrorDto } from '@dmr/shared';
-import { AuthService } from '../auth/auth.service';
-import { RabbitMQService } from '../../libs/rabbitmq/rabbitmq.service';
 import { RabbitMQMessageService } from '../../libs/rabbitmq/rabbitmq-message.service';
-import { MessageValidatorService } from './message-validator.service';
-import { RabbitMQService } from '../../libs/rabbitmq';
+import { RabbitMQService } from '../../libs/rabbitmq/rabbitmq.service';
+import { AuthService } from '../auth/auth.service';
 import { CentOpsService } from '../centops/centops.service';
-import { AgentEventNames, CentOpsEvent } from '@dmr/shared';
-import { OnEvent } from '@nestjs/event-emitter';
-import { CentOpsConfigurationDifference } from '../centops/interfaces/cent-ops-configuration-difference.interface';
+import { MessageValidatorService } from './message-validator.service';
 
 @WebSocketGateway({
   connectionStateRecovery: {
@@ -108,7 +104,6 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private async handleMessageError(error: unknown): Promise<void> {
-    // Handle validation failures
     if (error instanceof BadRequestException) {
       const errorData = error.getResponse() as {
         message: string;
@@ -117,7 +112,6 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
         receivedAt?: string;
       };
 
-      // Send validation failure to the queue
       if (
         errorData &&
         typeof errorData === 'object' &&

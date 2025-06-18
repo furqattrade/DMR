@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, IsEnum } from 'class-validator';
 import { MessageType } from '../enums/message-type.enum';
 
 export class AgentMessageDto {
@@ -22,7 +22,7 @@ export class AgentMessageDto {
   @IsNotEmpty()
   payload: string;
 
-  @IsBoolean()
-  @IsOptional()
+  @IsEnum(MessageType)
+  @IsNotEmpty()
   type: MessageType;
 }

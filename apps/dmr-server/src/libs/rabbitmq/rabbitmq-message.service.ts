@@ -1,33 +1,23 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ConfigType } from '@nestjs/config';
-import { AgentMessageDto, ValidationErrorDto } from '@dmr/shared';
-import { SimpleValidationFailureMessage } from '@dmr/shared/interfaces';
+import { AgentMessageDto, SimpleValidationFailureMessage, ValidationErrorDto } from '@dmr/shared';
+import { Injectable, Logger } from '@nestjs/common';
 import { RabbitMQService } from './rabbitmq.service';
-import { RABBITMQ_CONFIG_TOKEN, rabbitmqConfig } from '../../common/config';
 
 @Injectable()
 export class RabbitMQMessageService {
   private readonly logger = new Logger(RabbitMQMessageService.name);
   private readonly VALIDATION_FAILURES_QUEUE = 'validation-failures';
-  private readonly VALIDATION_FAILURES_TTL: number;
   private readonly UNKNOWN_ERROR = 'Unknown error';
 
-  constructor(
-    private readonly rabbitMQService: RabbitMQService,
-    @Inject(RABBITMQ_CONFIG_TOKEN)
-    private readonly config: ConfigType<typeof rabbitmqConfig>,
-  ) {
-    // Get TTL from environment variable or use default (24 hours)
-    // Using type assertion to fix the lint error about unsafe assignment
-    this.VALIDATION_FAILURES_TTL = (
-      this.config as { validationFailuresTTL: number }
-    ).validationFailuresTTL;
+  private generateUuid(): string {
+    return crypto.randomUUID();
+  }
+
+  constructor(private readonly rabbitMQService: RabbitMQService) {
     void this.setupValidationFailuresQueue();
   }
 
   private async setupValidationFailuresQueue(): Promise<void> {
     try {
-      // Check if the validation failures queue exists (should be created via init-rabbit.sh)
       const queueExists = await this.rabbitMQService.checkQueue(this.VALIDATION_FAILURES_QUEUE);
 
       if (queueExists) {
@@ -76,20 +66,12 @@ export class RabbitMQMessageService {
         this.logger.warn(`Failed to send message ${message.id} to queue ${queueName}`);
       }
 
-      return success;
+      return Promise.resolve(success);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : this.UNKNOWN_ERROR;
       this.logger.error(`Error sending valid message: ${errorMessage}`);
-      return false;
+      return Promise.resolve(false);
     }
-  }
-
-  private getPropertySafely<T>(object: unknown, key: string, defaultValue: T): T {
-    if (typeof object === 'object' && object !== null && key in object) {
-      const value = (object as Record<string, unknown>)[key];
-      return value !== undefined ? (value as T) : defaultValue;
-    }
-    return defaultValue;
   }
 
   sendValidationFailure(
@@ -117,13 +99,13 @@ export class RabbitMQMessageService {
           ) {
             messageId = String(messageWithId.id);
           } else {
-            messageId = crypto.randomUUID();
+            messageId = this.generateUuid();
           }
         } else {
-          messageId = crypto.randomUUID();
+          messageId = this.generateUuid();
         }
       } catch {
-        messageId = crypto.randomUUID();
+        messageId = this.generateUuid();
         this.logger.debug('Error extracting original message ID, using generated UUID instead');
       }
 
@@ -150,11 +132,11 @@ export class RabbitMQMessageService {
         );
       }
 
-      return success;
+      return Promise.resolve(success);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : this.UNKNOWN_ERROR;
       this.logger.error(`Error sending validation failure: ${errorMessage}`);
-      return false;
+      return Promise.resolve(false);
     }
   }
 }

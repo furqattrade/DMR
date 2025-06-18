@@ -1,19 +1,15 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { validate } from 'class-validator';
-import { plainToInstance } from 'class-transformer';
 import { AgentMessageDto, MessageType, ValidationErrorDto, ValidationErrorType } from '@dmr/shared';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { ValidationError as ClassValidatorValidationError, validate } from 'class-validator';
 import { CentOpsService } from '../centops/centops.service';
-import { RabbitMQMessageService } from '../../libs/rabbitmq/rabbitmq-message.service';
 
 @Injectable()
 export class MessageValidatorService {
   private readonly logger = new Logger(MessageValidatorService.name);
   private readonly UNKNOWN_ERROR = 'Unknown error';
 
-  constructor(
-    private readonly centOpsService: CentOpsService,
-    private readonly rabbitMQMessageService: RabbitMQMessageService,
-  ) {}
+  constructor(private readonly centOpsService: CentOpsService) {}
 
   async validateMessage(
     messageData: unknown,
@@ -21,26 +17,17 @@ export class MessageValidatorService {
   ): Promise<{ message: AgentMessageDto; validationErrors?: ValidationErrorDto[] }> {
     const validationErrors: ValidationErrorDto[] = [];
 
-    // Check if message is an object
-    this.validateObjectStructure(messageData, validationErrors, receivedAt);
-
     try {
-      // Validate against DTO schema
       const message = plainToInstance(AgentMessageDto, messageData);
       await this.validateMessageFormat(message, messageData, validationErrors, receivedAt);
       this.validateMessageTimestamp(message, messageData, validationErrors, receivedAt);
       this.validateMessageType(message, messageData, validationErrors, receivedAt);
-
-      // Validate sender and recipient
       await this.validateMessageParticipants(message, messageData, validationErrors, receivedAt);
-
-      // Message is valid
       return { message };
     } catch (error: unknown) {
       if (error instanceof BadRequestException) {
         throw error;
       }
-
       // For unexpected errors
       validationErrors.push(
         this.createValidationError(
@@ -55,25 +42,6 @@ export class MessageValidatorService {
 
       throw new BadRequestException({
         message: 'Message validation failed',
-        validationErrors,
-        originalMessage: messageData,
-        receivedAt,
-      });
-    }
-  }
-
-  private validateObjectStructure(
-    messageData: unknown,
-    validationErrors: ValidationErrorDto[],
-    receivedAt: string,
-  ): void {
-    if (!this.isValidObject(messageData)) {
-      validationErrors.push(
-        this.createValidationError(ValidationErrorType.INVALID_OBJECT, 'Message must be an object'),
-      );
-
-      throw new BadRequestException({
-        message: 'Message must be a valid object',
         validationErrors,
         originalMessage: messageData,
         receivedAt,
@@ -187,36 +155,20 @@ export class MessageValidatorService {
     }
   }
 
-  private isValidObject(data: unknown): boolean {
-    return data !== null && typeof data === 'object' && !Array.isArray(data);
-  }
-
   private addFormatErrorsToValidationErrors(
-    errors: ValidationError[],
+    errors: ClassValidatorValidationError[],
     validationErrors: ValidationErrorDto[],
   ): void {
     for (const error of errors) {
       if (!error || typeof error !== 'object') continue;
-
-      // Type guard to ensure error has constraints property
-      if (!error || typeof error !== 'object' || !('constraints' in error)) continue;
-
-      // Additional type guard for constraints property
-      const constraints = error.constraints;
-      if (!constraints || typeof constraints !== 'object') continue;
-
-      const errorConstraints = constraints as Record<string, string>;
-
-      for (const constraint in errorConstraints) {
-        if (Object.prototype.hasOwnProperty.call(errorConstraints, constraint)) {
-          validationErrors.push(
-            this.createValidationError(
-              ValidationErrorType.INVALID_FORMAT,
-              errorConstraints[constraint],
-            ),
-          );
-        }
-      }
+      if (!('constraints' in error) || !error.constraints || typeof error.constraints !== 'object')
+        continue;
+      const constraints = error.constraints as Record<string, string>;
+      Object.entries(constraints).forEach(([, message]) => {
+        validationErrors.push(
+          this.createValidationError(ValidationErrorType.INVALID_FORMAT, message),
+        );
+      });
     }
   }
 

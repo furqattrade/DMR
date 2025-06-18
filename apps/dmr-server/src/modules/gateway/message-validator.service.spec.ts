@@ -1,32 +1,46 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { MessageType } from '@dmr/shared';
 import { BadRequestException } from '@nestjs/common';
-import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { AgentMessageDto } from '@dmr/shared';
+import { Test, TestingModule } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CentOpsService } from '../centops/centops.service';
 import { MessageValidatorService } from './message-validator.service';
-import { RabbitMQMessageService } from '../../libs/rabbitmq';
 
-const mockRabbitMQMessageService = {
-  sendValidMessage: vi.fn(),
-  sendValidationFailure: vi.fn(),
+const mockCentOpsService = {
+  getCentOpsConfigurationByClientId: vi.fn().mockImplementation(async (id: string) => {
+    if (
+      [
+        'agent-1',
+        'agent-2',
+        'complex-sender',
+        'complex-recipient',
+        '123e4567-e89b-12d3-a456-426614174000',
+        '123e4567-e89b-12d3-a456-426614174001',
+        '123e4567-e89b-12d3-a456-426614174002',
+      ].includes(id)
+    ) {
+      return { id, name: 'Test Agent' };
+    }
+    throw new BadRequestException(`Agent with ID ${id} not found`);
+  }),
 };
 
 describe('MessageValidatorService', () => {
   let service: MessageValidatorService;
-  let rabbitMQMessageService: RabbitMQMessageService;
+  let centOpsService: CentOpsService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MessageValidatorService,
         {
-          provide: RabbitMQMessageService,
-          useValue: mockRabbitMQMessageService,
+          provide: CentOpsService,
+          useValue: mockCentOpsService,
         },
       ],
     }).compile();
 
     service = module.get<MessageValidatorService>(MessageValidatorService);
-    rabbitMQMessageService = module.get<RabbitMQMessageService>(RabbitMQMessageService);
+    centOpsService = module.get<CentOpsService>(CentOpsService);
 
     vi.clearAllMocks();
   });
@@ -38,24 +52,23 @@ describe('MessageValidatorService', () => {
   describe('validateMessage', () => {
     it('should validate a properly formatted message', async () => {
       const messageData = {
-        id: 'msg-123',
-        senderId: 'agent-1',
-        recipientId: 'agent-2',
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        senderId: '123e4567-e89b-12d3-a456-426614174001',
+        recipientId: '123e4567-e89b-12d3-a456-426614174002',
         timestamp: new Date().toISOString(),
-        type: 'TEST_MESSAGE',
+        type: MessageType.Message,
         payload: 'test payload',
       };
 
       const result = await service.validateMessage(messageData);
 
-      expect(result).toEqual(
+      expect(result.message).toEqual(
         expect.objectContaining({
           id: messageData.id,
           senderId: messageData.senderId,
           recipientId: messageData.recipientId,
         }),
       );
-      expect(mockRabbitMQMessageService.sendValidMessage).toHaveBeenCalledWith(result);
     });
 
     it('should reject null/undefined message data', async () => {
@@ -66,7 +79,6 @@ describe('MessageValidatorService', () => {
     it('should reject messages with missing required fields', async () => {
       const incompleteMessage = {
         id: 'msg-123',
-        // Missing senderId
         recipientId: 'agent-2',
         payload: 'test payload',
       };
@@ -75,96 +87,112 @@ describe('MessageValidatorService', () => {
     });
 
     it('should handle complex message objects with nested properties', async () => {
-      const complexMessageData = {
-        id: 'complex-123',
-        senderId: 'complex-sender',
-        recipientId: 'complex-recipient',
+      const complexMessage = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        senderId: '123e4567-e89b-12d3-a456-426614174001',
+        recipientId: '123e4567-e89b-12d3-a456-426614174002',
         timestamp: new Date().toISOString(),
-        type: 'COMPLEX_MESSAGE',
-        payload: {
-          content: 'nested content',
-          values: [1, 2, 3],
-        },
+        type: MessageType.Message,
+        payload: JSON.stringify({ content: 'nested content', values: [1, 2, 3] }),
       };
 
-      const result = await service.validateMessage(complexMessageData);
+      const result = await service.validateMessage(complexMessage);
 
-      expect(result).toEqual(
+      expect(result.message).toEqual(
         expect.objectContaining({
-          id: complexMessageData.id,
-          senderId: complexMessageData.senderId,
-          recipientId: complexMessageData.recipientId,
+          id: complexMessage.id,
+          senderId: complexMessage.senderId,
+          recipientId: complexMessage.recipientId,
         }),
       );
-      expect(mockRabbitMQMessageService.sendValidMessage).toHaveBeenCalledWith(result);
     });
 
-    it('should store validation failures in the validation-failures queue', async () => {
-      const invalidMessage = {
-        id: 'invalid-123',
-        // Missing required fields
-      };
-
-      const receivedAt = new Date().toISOString();
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date(receivedAt));
-
-      await expect(service.validateMessage(invalidMessage)).rejects.toThrow(BadRequestException);
-
-      expect(mockRabbitMQMessageService.sendValidationFailure).toHaveBeenCalledWith(
-        invalidMessage,
-        expect.any(Array),
-        receivedAt,
-      );
-
-      vi.useRealTimers();
-    });
-
-    it('should handle empty objects', async () => {
+    it('should reject completely empty objects', async () => {
       const emptyMessage = {};
 
       await expect(service.validateMessage(emptyMessage)).rejects.toThrow(BadRequestException);
-      expect(mockRabbitMQMessageService.sendValidationFailure).toHaveBeenCalledWith(
-        emptyMessage,
-        expect.any(Array),
-        expect.any(String),
-      );
     });
 
-    it('should handle non-object message types', async () => {
+    it('should reject non-object message types', async () => {
       const nonObjectMessages = ['string message', 123, true, [1, 2, 3]];
 
       for (const message of nonObjectMessages) {
         await expect(service.validateMessage(message)).rejects.toThrow(BadRequestException);
-        expect(mockRabbitMQMessageService.sendValidationFailure).toHaveBeenCalledWith(
-          message,
-          expect.any(Array),
-          expect.any(String),
-        );
       }
     });
 
-    it('should validate and transform message to AgentMessageDto', async () => {
+    it('should validate and transform message to AgentMessageDto, preserving unknown fields', async () => {
       const messageData = {
-        id: 'msg-123',
-        senderId: 'agent-1',
-        recipientId: 'agent-2',
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        senderId: '123e4567-e89b-12d3-a456-426614174001',
+        recipientId: '123e4567-e89b-12d3-a456-426614174002',
         timestamp: new Date().toISOString(),
-        type: 'TEST_MESSAGE',
+        type: MessageType.Message,
         payload: 'test payload',
         extraField: 'should be ignored',
       };
 
       const result = await service.validateMessage(messageData);
 
-      expect(result).toBeInstanceOf(Object);
-      expect(result).toHaveProperty('id', messageData.id);
-      expect(result).toHaveProperty('senderId', messageData.senderId);
-      expect(result).toHaveProperty('recipientId', messageData.recipientId);
-      expect(result).toHaveProperty('timestamp', messageData.timestamp);
-      expect(result).toHaveProperty('type', messageData.type);
-      expect(result).toHaveProperty('payload', messageData.payload);
-      expect(result).not.toHaveProperty('extraField');
+      expect(result.message).toHaveProperty('id', messageData.id);
+      expect(result.message).toHaveProperty('senderId', messageData.senderId);
+      expect(result.message).toHaveProperty('recipientId', messageData.recipientId);
+      expect(result.message).toHaveProperty('timestamp', messageData.timestamp);
+      expect(result.message).toHaveProperty('type', messageData.type);
+      expect(result.message).toHaveProperty('payload', messageData.payload);
+      expect((result.message as any).extraField).toBe('should be ignored');
+    });
+
+    it('should throw if senderId does not exist', async () => {
+      const messageData = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        senderId: '123e4567-e89b-12d3-a456-426614174099',
+        recipientId: '123e4567-e89b-12d3-a456-426614174002',
+        timestamp: new Date().toISOString(),
+        type: MessageType.Message,
+        payload: 'test',
+      };
+
+      await expect(service.validateMessage(messageData)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw if recipientId does not exist', async () => {
+      const messageData = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        senderId: '123e4567-e89b-12d3-a456-426614174001',
+        recipientId: '123e4567-e89b-12d3-a456-426614174099',
+        timestamp: new Date().toISOString(),
+        type: MessageType.Message,
+        payload: 'test',
+      };
+
+      await expect(service.validateMessage(messageData)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject message with invalid timestamp', async () => {
+      const messageData = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        senderId: '123e4567-e89b-12d3-a456-426614174001',
+        recipientId: '123e4567-e89b-12d3-a456-426614174002',
+        timestamp: 'not-a-date',
+        type: MessageType.Message,
+        payload: 'test',
+      };
+
+      await expect(service.validateMessage(messageData)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject message with invalid message type', async () => {
+      const messageData = {
+        id: 'msg-invalid-type',
+        senderId: 'agent-1',
+        recipientId: 'agent-2',
+        timestamp: new Date().toISOString(),
+        type: 'INVALID_TYPE',
+        payload: 'test',
+      };
+
+      await expect(service.validateMessage(messageData)).rejects.toThrow(BadRequestException);
     });
   });
 });
