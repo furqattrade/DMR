@@ -32,19 +32,19 @@
       },
       {
         "file": ".github/actions/setup/action.yml",
-        "hash": "1968062901956928323"
+        "hash": "1041381079162519325"
       },
       {
         "file": ".github/dependabot.yml",
-        "hash": "2456158957300461765"
+        "hash": "3023922340996625698"
       },
       {
         "file": ".github/workflows/run-checks.yml",
-        "hash": "12241863834935017578"
+        "hash": "201772816854762309"
       },
       {
         "file": ".gitignore",
-        "hash": "17734103462837485078"
+        "hash": "407343088930216244"
       },
       {
         "file": ".npmrc",
@@ -60,15 +60,15 @@
       },
       {
         "file": ".prettierrc",
-        "hash": "11958571707323818326"
+        "hash": "3416863897412338355"
       },
       {
         "file": ".vscode/extensions.json",
-        "hash": "12445822510582588631"
+        "hash": "17637368926737444469"
       },
       {
         "file": ".vscode/settings.json",
-        "hash": "17450548760531913332"
+        "hash": "14177152394205458254"
       },
       {
         "file": "LICENSE",
@@ -76,110 +76,199 @@
       },
       {
         "file": "README.md",
-        "hash": "13555376907617785693"
+        "hash": "12856780038538234136"
       },
       {
         "file": "eslint.config.mjs",
-        "hash": "16426637584773515540"
+        "hash": "5366387265814877562"
       },
       {
         "file": "nx.json",
-        "hash": "8822876052566914882"
+        "hash": "5742565452995133391"
       },
       {
         "file": "package.json",
-        "hash": "10975511782159351826"
+        "hash": "4435922187272274371"
       },
       {
         "file": "pnpm-lock.yaml",
-        "hash": "3131136398156521104"
+        "hash": "2563116192993871335"
       },
       {
         "file": "tsconfig.base.json",
-        "hash": "6726945634296569035"
-      },
-      {
-        "file": "vitest.config.mts",
-        "hash": "3364828474079616931"
+        "hash": "5892148436194731464"
       }
     ],
     "projectFileMap": {
       "dmr-agent": [
         {
-          "file": "apps/dmr-agent/eslint.config.mjs",
-          "hash": "825007401213781954"
+          "file": "apps/dmr-agent/.env.example",
+          "hash": "6498479925087932712"
         },
         {
           "file": "apps/dmr-agent/project.json",
-          "hash": "9988321438198729075"
+          "hash": "12651846864630660734"
         },
         {
           "file": "apps/dmr-agent/src/app.module.ts",
-          "hash": "6287570494169109150",
+          "hash": "10171227776819211699",
           "deps": [
             "npm:@nestjs/common"
           ]
         },
         {
           "file": "apps/dmr-agent/src/common/common.module.ts",
-          "hash": "10998554205450945163",
+          "hash": "10440584687910701329",
           "deps": [
+            "npm:@nestjs/cache-manager",
             "npm:@nestjs/common",
             "npm:@nestjs/config"
+          ]
+        },
+        {
+          "file": "apps/dmr-agent/src/common/config/agent.config.ts",
+          "hash": "18086235138410419123",
+          "deps": [
+            "shared",
+            "npm:@nestjs/config",
+            "npm:joi"
           ]
         },
         {
           "file": "apps/dmr-agent/src/common/config/app.config.ts",
-          "hash": "10979803723874226102",
+          "hash": "3246043003042022730",
           "deps": [
-            "npm:@nestjs/config"
+            "shared",
+            "npm:@nestjs/config",
+            "npm:joi"
+          ]
+        },
+        {
+          "file": "apps/dmr-agent/src/common/config/dmr-server.config.ts",
+          "hash": "4161915659133990590",
+          "deps": [
+            "shared",
+            "npm:@nestjs/config",
+            "npm:joi"
           ]
         },
         {
           "file": "apps/dmr-agent/src/common/config/index.ts",
-          "hash": "11173289111104827988"
+          "hash": "7092177634463071195"
+        },
+        {
+          "file": "apps/dmr-agent/src/common/config/web-socket.config.ts",
+          "hash": "10286002557610884451",
+          "deps": [
+            "shared",
+            "npm:@nestjs/config",
+            "npm:joi"
+          ]
         },
         {
           "file": "apps/dmr-agent/src/main.ts",
-          "hash": "1720422331571512947",
+          "hash": "11413768010480156495",
           "deps": [
             "npm:@nestjs/common",
+            "npm:@nestjs/config",
             "npm:@nestjs/core",
             "npm:@nestjs/platform-express",
             "npm:compression"
           ]
         },
         {
+          "file": "apps/dmr-agent/src/modules/agents/agents.module.ts",
+          "hash": "12981088398876631098",
+          "deps": [
+            "npm:@nestjs/common"
+          ]
+        },
+        {
+          "file": "apps/dmr-agent/src/modules/agents/agents.service.spec.ts",
+          "hash": "16978111521627859515",
+          "deps": [
+            "shared",
+            "npm:@nestjs/cache-manager",
+            "npm:@nestjs/testing",
+            "npm:class-transformer",
+            "npm:class-validator",
+            "npm:vitest"
+          ]
+        },
+        {
+          "file": "apps/dmr-agent/src/modules/agents/agents.service.ts",
+          "hash": "13579832713234619774",
+          "deps": [
+            "shared",
+            "npm:class-transformer",
+            "npm:class-validator",
+            "npm:@nestjs/cache-manager",
+            "npm:@nestjs/common"
+          ]
+        },
+        {
           "file": "apps/dmr-agent/src/modules/health/health.controller.ts",
-          "hash": "16742386065858556977",
+          "hash": "9601622024181285530",
           "deps": [
             "npm:@nestjs/common"
           ]
         },
         {
           "file": "apps/dmr-agent/src/modules/health/health.module.ts",
-          "hash": "6069677752888488442",
+          "hash": "17082079518119909178",
           "deps": [
             "npm:@nestjs/common"
           ]
         },
         {
           "file": "apps/dmr-agent/src/modules/health/health.service.spec.ts",
-          "hash": "3820906657362945970",
+          "hash": "3114582187447059045",
           "deps": [
             "npm:vitest"
           ]
         },
         {
           "file": "apps/dmr-agent/src/modules/health/health.service.ts",
-          "hash": "7243172844318215816",
+          "hash": "12629746710947422473",
           "deps": [
             "npm:@nestjs/common"
           ]
         },
         {
+          "file": "apps/dmr-agent/src/modules/websocket/websocket.module.ts",
+          "hash": "9010678968156723227",
+          "deps": [
+            "npm:@nestjs/common",
+            "npm:@nestjs/jwt"
+          ]
+        },
+        {
+          "file": "apps/dmr-agent/src/modules/websocket/websocket.service.spec.ts",
+          "hash": "3973937734925450645",
+          "deps": [
+            "npm:@nestjs/common",
+            "npm:@nestjs/jwt",
+            "npm:@nestjs/testing",
+            "npm:vitest",
+            [
+              "npm:socket.io-client",
+              "dynamic"
+            ]
+          ]
+        },
+        {
+          "file": "apps/dmr-agent/src/modules/websocket/websocket.service.ts",
+          "hash": "11573871444779243270",
+          "deps": [
+            "shared",
+            "npm:@nestjs/common",
+            "npm:@nestjs/jwt",
+            "npm:socket.io-client"
+          ]
+        },
+        {
           "file": "apps/dmr-agent/test/health.e2e-spec.ts",
-          "hash": "16082748061648197492",
+          "hash": "13754724551058586299",
           "deps": [
             "npm:@nestjs/common",
             "npm:@nestjs/testing",
@@ -189,7 +278,7 @@
         },
         {
           "file": "apps/dmr-agent/test/setup.ts",
-          "hash": "11000043934762635124",
+          "hash": "6969252932454377587",
           "deps": [
             "npm:vitest",
             [
@@ -200,23 +289,23 @@
         },
         {
           "file": "apps/dmr-agent/tsconfig.app.json",
-          "hash": "13861876758144677697"
+          "hash": "6642416146672581015"
         },
         {
           "file": "apps/dmr-agent/tsconfig.json",
-          "hash": "14901914457482949804"
+          "hash": "3025378044812449119"
         },
         {
           "file": "apps/dmr-agent/vitest.config.e2e.mts",
-          "hash": "6572687172280400051",
+          "hash": "12809651407416686551",
           "deps": [
             "npm:unplugin-swc",
             "npm:vitest"
           ]
         },
         {
-          "file": "apps/dmr-agent/vitest.config.ts",
-          "hash": "4197227383478300985",
+          "file": "apps/dmr-agent/vitest.config.mts",
+          "hash": "12707851950360464291",
           "deps": [
             "npm:unplugin-swc",
             "npm:vitest"
@@ -224,7 +313,7 @@
         },
         {
           "file": "apps/dmr-agent/webpack.config.js",
-          "hash": "8317472834748037160",
+          "hash": "13338948634091078205",
           "deps": [
             "npm:@nx/webpack"
           ]
@@ -233,98 +322,186 @@
       "shared": [
         {
           "file": "libs/shared/.swcrc",
-          "hash": "1208819521669582604"
+          "hash": "16777374493166073853"
         },
         {
           "file": "libs/shared/README.md",
-          "hash": "16742255143066416646"
+          "hash": "10464589154510889842"
+        },
+        {
+          "file": "libs/shared/eslint.config.mjs",
+          "hash": "2624537849564014525"
         },
         {
           "file": "libs/shared/package.json",
-          "hash": "5212315054053477889",
+          "hash": "7838365250991449635",
           "deps": [
             "npm:tslib"
           ]
         },
         {
           "file": "libs/shared/project.json",
-          "hash": "7914971194389123242"
+          "hash": "17666022909893125788"
+        },
+        {
+          "file": "libs/shared/src/dtos/agent-decrypted-message.dto.ts",
+          "hash": "9890798835230523753",
+          "deps": [
+            "npm:class-validator"
+          ]
+        },
+        {
+          "file": "libs/shared/src/dtos/agent-encrypted-message.dto.ts",
+          "hash": "4569524824254334729",
+          "deps": [
+            "npm:class-validator"
+          ]
+        },
+        {
+          "file": "libs/shared/src/dtos/agent.dto.ts",
+          "hash": "436026256558363399",
+          "deps": [
+            "npm:class-validator"
+          ]
+        },
+        {
+          "file": "libs/shared/src/dtos/base-message.dto.ts",
+          "hash": "15475724776938875895",
+          "deps": [
+            "npm:class-validator"
+          ]
         },
         {
           "file": "libs/shared/src/dtos/client-config.dto.ts",
-          "hash": "17620784795715410530",
+          "hash": "16174089157859681171",
+          "deps": [
+            "npm:class-validator"
+          ]
+        },
+        {
+          "file": "libs/shared/src/dtos/external-service-message.dto.ts",
+          "hash": "8883826619414469639",
           "deps": [
             "npm:class-validator"
           ]
         },
         {
           "file": "libs/shared/src/dtos/index.ts",
-          "hash": "15642889624627149568"
+          "hash": "2196786243835874563"
+        },
+        {
+          "file": "libs/shared/src/enums/agent-event-names.enum.ts",
+          "hash": "17559853508640134908"
         },
         {
           "file": "libs/shared/src/enums/app.enum.constant.ts",
-          "hash": "14250362586055332229"
+          "hash": "15936416530517059294"
+        },
+        {
+          "file": "libs/shared/src/enums/cent-ops-event.enum.ts",
+          "hash": "12162674989962823357"
         },
         {
           "file": "libs/shared/src/enums/index.ts",
-          "hash": "17928465030018287003"
+          "hash": "4913706194564812098"
+        },
+        {
+          "file": "libs/shared/src/enums/message-type.enum.ts",
+          "hash": "13976072586331120011"
         },
         {
           "file": "libs/shared/src/index.ts",
-          "hash": "18095842981518931145"
+          "hash": "15085450680615992957"
+        },
+        {
+          "file": "libs/shared/src/interfaces/agent.interface.ts",
+          "hash": "107371288122564053"
         },
         {
           "file": "libs/shared/src/interfaces/centops.interface.ts",
-          "hash": "16057572382994931541"
+          "hash": "11224158801944804310"
         },
         {
           "file": "libs/shared/src/interfaces/index.ts",
-          "hash": "8987117012906544352"
+          "hash": "3827970187926448282"
+        },
+        {
+          "file": "libs/shared/src/interfaces/jwt-payload.interface.ts",
+          "hash": "13664580786096772311"
+        },
+        {
+          "file": "libs/shared/src/interfaces/jwt-payload.interfaces.ts",
+          "hash": "13664580786096772311"
+        },
+        {
+          "file": "libs/shared/src/utils/decrypt-payload.ts",
+          "hash": "6472692313010506188",
+          "deps": [
+            "npm:jose"
+          ]
+        },
+        {
+          "file": "libs/shared/src/utils/encrypt-payload.ts",
+          "hash": "1593471082921895018",
+          "deps": [
+            "npm:jose"
+          ]
         },
         {
           "file": "libs/shared/src/utils/index.ts",
-          "hash": "9049069917114062402"
+          "hash": "16974260630728060763"
         },
         {
           "file": "libs/shared/src/utils/map-from-array.ts",
-          "hash": "9479572972405134452"
+          "hash": "13859967925918030247"
+        },
+        {
+          "file": "libs/shared/src/utils/validate-object.ts",
+          "hash": "16988122191353096121",
+          "deps": [
+            "npm:joi"
+          ]
         },
         {
           "file": "libs/shared/tsconfig.json",
-          "hash": "5059237663700118536"
+          "hash": "1280792505457930359"
         },
         {
           "file": "libs/shared/tsconfig.lib.json",
-          "hash": "6492511145659628946"
+          "hash": "15798669420171897096"
         }
       ],
       "dmr-server": [
         {
           "file": "apps/dmr-server/.env.example",
-          "hash": "10083612560312981126"
+          "hash": "9821098444276507458"
         },
         {
           "file": "apps/dmr-server/docker-compose.yml",
-          "hash": "14474936820617000189"
+          "hash": "3164313131963095380"
         },
         {
           "file": "apps/dmr-server/eslint.config.mjs",
-          "hash": "825007401213781954"
+          "hash": "2624537849564014525"
         },
         {
           "file": "apps/dmr-server/project.json",
-          "hash": "880777716071018252"
+          "hash": "14481548875089459464"
         },
         {
           "file": "apps/dmr-server/src/app.module.ts",
-          "hash": "3041786342246872018",
+          "hash": "8725430361631552553",
           "deps": [
-            "npm:@nestjs/common"
+            "npm:@nestjs/common",
+            "npm:@nestjs/schedule",
+            "npm:@nestjs/cache-manager",
+            "npm:@nestjs/axios",
+            "npm:@nestjs/event-emitter"
           ]
         },
         {
           "file": "apps/dmr-server/src/common/common.module.ts",
-          "hash": "9877571228097916684",
+          "hash": "11806595235247544408",
           "deps": [
             "npm:@nestjs/common",
             "npm:@nestjs/config",
@@ -335,44 +512,52 @@
         },
         {
           "file": "apps/dmr-server/src/common/config/app.config.ts",
-          "hash": "10979803723874226102",
+          "hash": "13047861939650346364",
           "deps": [
-            "npm:@nestjs/config"
+            "shared",
+            "npm:@nestjs/config",
+            "npm:joi"
           ]
         },
         {
           "file": "apps/dmr-server/src/common/config/cent-ops.config.ts",
-          "hash": "12388742306115776621",
+          "hash": "15089790248918629136",
           "deps": [
-            "npm:@nestjs/config"
+            "shared",
+            "npm:@nestjs/config",
+            "npm:joi"
           ]
         },
         {
           "file": "apps/dmr-server/src/common/config/index.ts",
-          "hash": "14981645776601857009"
+          "hash": "17651966542764900470"
         },
         {
           "file": "apps/dmr-server/src/common/config/rabbitmq.config.ts",
-          "hash": "14905144909948104782",
+          "hash": "12621191866124778712",
           "deps": [
-            "npm:@nestjs/config"
+            "shared",
+            "npm:@nestjs/config",
+            "npm:joi"
           ]
         },
         {
           "file": "apps/dmr-server/src/libs/rabbitmq/index.ts",
-          "hash": "8128691460210049525"
+          "hash": "18140997142896814048"
         },
         {
           "file": "apps/dmr-server/src/libs/rabbitmq/rabbitmq.module.ts",
-          "hash": "2030566839243384864",
+          "hash": "2266529977956554772",
           "deps": [
             "npm:@nestjs/common"
           ]
         },
         {
           "file": "apps/dmr-server/src/libs/rabbitmq/rabbitmq.service.spec.ts",
-          "hash": "95318800907427174",
+          "hash": "16053607841812421273",
           "deps": [
+            "npm:@nestjs/cache-manager",
+            "npm:@nestjs/schedule",
             "npm:@nestjs/testing",
             "npm:vitest",
             "npm:amqplib"
@@ -380,15 +565,17 @@
         },
         {
           "file": "apps/dmr-server/src/libs/rabbitmq/rabbitmq.service.ts",
-          "hash": "841010043818033652",
+          "hash": "18138767313178699768",
           "deps": [
+            "npm:@nestjs/cache-manager",
             "npm:@nestjs/common",
+            "npm:@nestjs/schedule",
             "npm:amqplib"
           ]
         },
         {
           "file": "apps/dmr-server/src/main.ts",
-          "hash": "1099011015645410735",
+          "hash": "13293637830541546541",
           "deps": [
             "npm:@nestjs/common",
             "npm:@nestjs/config",
@@ -400,40 +587,74 @@
         },
         {
           "file": "apps/dmr-server/src/mocks/handlers/centops.response.ts",
-          "hash": "14838485587753767707",
+          "hash": "5617402119346831995",
           "deps": [
             "npm:msw"
           ]
         },
         {
           "file": "apps/dmr-server/src/mocks/server.ts",
-          "hash": "10634874350442618573",
+          "hash": "22002175859455873",
           "deps": [
             "npm:msw"
           ]
         },
         {
+          "file": "apps/dmr-server/src/modules/auth/auth.module.ts",
+          "hash": "7146271767267648079",
+          "deps": [
+            "npm:@nestjs/common",
+            "npm:@nestjs/jwt"
+          ]
+        },
+        {
+          "file": "apps/dmr-server/src/modules/auth/auth.service.spec.ts",
+          "hash": "13925478305136021624",
+          "deps": [
+            "npm:@nestjs/testing",
+            "npm:@nestjs/jwt",
+            "shared",
+            "npm:@nestjs/common",
+            "npm:vitest"
+          ]
+        },
+        {
+          "file": "apps/dmr-server/src/modules/auth/auth.service.ts",
+          "hash": "6298640974809945433",
+          "deps": [
+            "npm:@nestjs/common",
+            "npm:@nestjs/jwt",
+            "shared"
+          ]
+        },
+        {
+          "file": "apps/dmr-server/src/modules/auth/interfaces/headers.interface.ts",
+          "hash": "8872563719103437119"
+        },
+        {
           "file": "apps/dmr-server/src/modules/centops/centops.module.ts",
-          "hash": "5842407971654993867",
+          "hash": "1563826571867067030",
           "deps": [
             "npm:@nestjs/common"
           ]
         },
         {
           "file": "apps/dmr-server/src/modules/centops/centops.service.spec.ts",
-          "hash": "34947390262979019",
+          "hash": "10406151080056649104",
           "deps": [
             "npm:@nestjs/axios",
             "npm:@nestjs/cache-manager",
             "npm:@nestjs/schedule",
             "npm:@nestjs/testing",
             "npm:rxjs",
-            "npm:vitest"
+            "npm:vitest",
+            "npm:@nestjs/event-emitter",
+            "shared"
           ]
         },
         {
           "file": "apps/dmr-server/src/modules/centops/centops.service.ts",
-          "hash": "15306955029987228973",
+          "hash": "10475027274724742260",
           "deps": [
             "npm:@nestjs/axios",
             "npm:@nestjs/cache-manager",
@@ -443,40 +664,84 @@
             "npm:class-validator",
             "npm:rxjs",
             "shared",
-            "npm:cron"
+            "npm:cron",
+            "npm:@nestjs/event-emitter"
+          ]
+        },
+        {
+          "file": "apps/dmr-server/src/modules/centops/interfaces/cent-ops-configuration-difference.interface.ts",
+          "hash": "3804218558604932084",
+          "deps": [
+            "shared"
+          ]
+        },
+        {
+          "file": "apps/dmr-server/src/modules/gateway/agent.gateway.ts",
+          "hash": "7570206612946427897",
+          "deps": [
+            "npm:@nestjs/websockets",
+            "npm:@nestjs/common",
+            "npm:socket.io",
+            "shared",
+            "npm:@nestjs/event-emitter"
+          ]
+        },
+        {
+          "file": "apps/dmr-server/src/modules/gateway/agent.spec.ts",
+          "hash": "5126257047233935987",
+          "deps": [
+            "npm:@nestjs/testing",
+            "npm:@nestjs/common",
+            "npm:socket.io",
+            "npm:vitest",
+            "shared"
+          ]
+        },
+        {
+          "file": "apps/dmr-server/src/modules/gateway/gateway.module.ts",
+          "hash": "14344613820759784992",
+          "deps": [
+            "npm:@nestjs/common"
+          ]
+        },
+        {
+          "file": "apps/dmr-server/src/modules/gateway/types/types.d.ts",
+          "hash": "5474182679562284060",
+          "deps": [
+            "shared"
           ]
         },
         {
           "file": "apps/dmr-server/src/modules/health/health.controller.ts",
-          "hash": "16742386065858556977",
+          "hash": "9601622024181285530",
           "deps": [
             "npm:@nestjs/common"
           ]
         },
         {
           "file": "apps/dmr-server/src/modules/health/health.module.ts",
-          "hash": "6069677752888488442",
+          "hash": "17082079518119909178",
           "deps": [
             "npm:@nestjs/common"
           ]
         },
         {
           "file": "apps/dmr-server/src/modules/health/health.service.spec.ts",
-          "hash": "3820906657362945970",
+          "hash": "3114582187447059045",
           "deps": [
             "npm:vitest"
           ]
         },
         {
           "file": "apps/dmr-server/src/modules/health/health.service.ts",
-          "hash": "7243172844318215816",
+          "hash": "12629746710947422473",
           "deps": [
             "npm:@nestjs/common"
           ]
         },
         {
           "file": "apps/dmr-server/test/health.e2e-spec.ts",
-          "hash": "15107744981949051798",
+          "hash": "383559729238197623",
           "deps": [
             "npm:@nestjs/common",
             "npm:@nestjs/testing",
@@ -486,7 +751,7 @@
         },
         {
           "file": "apps/dmr-server/test/setup.ts",
-          "hash": "7476629839741466856",
+          "hash": "13793212609861792825",
           "deps": [
             "npm:vitest",
             "npm:reflect-metadata"
@@ -494,23 +759,23 @@
         },
         {
           "file": "apps/dmr-server/tsconfig.app.json",
-          "hash": "10994131042716159856"
+          "hash": "6642416146672581015"
         },
         {
           "file": "apps/dmr-server/tsconfig.json",
-          "hash": "14901914457482949804"
+          "hash": "3025378044812449119"
         },
         {
           "file": "apps/dmr-server/vitest.config.e2e.mts",
-          "hash": "6378046920836282431",
+          "hash": "9832058368643884451",
           "deps": [
             "npm:vitest",
             "npm:unplugin-swc"
           ]
         },
         {
-          "file": "apps/dmr-server/vitest.config.ts",
-          "hash": "256624686987090951",
+          "file": "apps/dmr-server/vitest.config.mts",
+          "hash": "17263158506739712538",
           "deps": [
             "npm:unplugin-swc",
             "npm:vitest"
@@ -518,7 +783,7 @@
         },
         {
           "file": "apps/dmr-server/webpack.config.js",
-          "hash": "9391336436798967092",
+          "hash": "8559373584060204139",
           "deps": [
             "npm:@nx/webpack"
           ]
