@@ -27,64 +27,32 @@
   "fileMap": {
     "nonProjectFiles": [
       {
-        "file": ".editorconfig",
-        "hash": "11532813898455409296"
-      },
-      {
-        "file": ".github/actions/setup/action.yml",
-        "hash": "1041381079162519325"
-      },
-      {
-        "file": ".github/dependabot.yml",
-        "hash": "3023922340996625698"
-      },
-      {
-        "file": ".github/workflows/run-checks.yml",
-        "hash": "201772816854762309"
-      },
-      {
-        "file": ".gitignore",
-        "hash": "407343088930216244"
+        "file": ".vscode/settings.json",
+        "hash": "14177152394205458254"
       },
       {
         "file": ".npmrc",
         "hash": "754837060302785938"
       },
       {
+        "file": ".github/actions/setup/action.yml",
+        "hash": "1041381079162519325"
+      },
+      {
+        "file": "tsconfig.base.json",
+        "hash": "5892148436194731464"
+      },
+      {
         "file": ".nvmrc",
         "hash": "9810507002215836495"
-      },
-      {
-        "file": ".prettierignore",
-        "hash": "17085498363870782104"
-      },
-      {
-        "file": ".prettierrc",
-        "hash": "3416863897412338355"
       },
       {
         "file": ".vscode/extensions.json",
         "hash": "17637368926737444469"
       },
       {
-        "file": ".vscode/settings.json",
-        "hash": "14177152394205458254"
-      },
-      {
-        "file": "LICENSE",
-        "hash": "3473145850101588107"
-      },
-      {
-        "file": "README.md",
-        "hash": "12856780038538234136"
-      },
-      {
-        "file": "eslint.config.mjs",
-        "hash": "5366387265814877562"
-      },
-      {
-        "file": "nx.json",
-        "hash": "5742565452995133391"
+        "file": ".prettierrc",
+        "hash": "3416863897412338355"
       },
       {
         "file": "package.json",
@@ -95,8 +63,40 @@
         "hash": "2563116192993871335"
       },
       {
-        "file": "tsconfig.base.json",
-        "hash": "5892148436194731464"
+        "file": ".prettierignore",
+        "hash": "17085498363870782104"
+      },
+      {
+        "file": "nx.json",
+        "hash": "5742565452995133391"
+      },
+      {
+        "file": ".github/workflows/run-checks.yml",
+        "hash": "201772816854762309"
+      },
+      {
+        "file": ".gitignore",
+        "hash": "407343088930216244"
+      },
+      {
+        "file": "eslint.config.mjs",
+        "hash": "5366387265814877562"
+      },
+      {
+        "file": "README.md",
+        "hash": "12856780038538234136"
+      },
+      {
+        "file": ".github/dependabot.yml",
+        "hash": "3023922340996625698"
+      },
+      {
+        "file": ".editorconfig",
+        "hash": "11532813898455409296"
+      },
+      {
+        "file": "LICENSE",
+        "hash": "3473145850101588107"
       }
     ],
     "projectFileMap": {
@@ -546,6 +546,19 @@
           "hash": "18140997142896814048"
         },
         {
+          "file": "apps/dmr-server/src/libs/rabbitmq/rabbitmq-message-forwarding.spec.ts",
+          "hash": "9128852001697298609",
+          "deps": [
+            "npm:@nestjs/testing",
+            "npm:@nestjs/event-emitter",
+            "npm:vitest",
+            "npm:@nestjs/common",
+            "shared",
+            "npm:@nestjs/cache-manager",
+            "npm:@nestjs/schedule"
+          ]
+        },
+        {
           "file": "apps/dmr-server/src/libs/rabbitmq/rabbitmq.module.ts",
           "hash": "2266529977956554772",
           "deps": [
@@ -565,10 +578,12 @@
         },
         {
           "file": "apps/dmr-server/src/libs/rabbitmq/rabbitmq.service.ts",
-          "hash": "18138767313178699768",
+          "hash": "6110345411941462032",
           "deps": [
+            "shared",
             "npm:@nestjs/cache-manager",
             "npm:@nestjs/common",
+            "npm:@nestjs/event-emitter",
             "npm:@nestjs/schedule",
             "npm:amqplib"
           ]
@@ -677,7 +692,7 @@
         },
         {
           "file": "apps/dmr-server/src/modules/gateway/agent.gateway.ts",
-          "hash": "7570206612946427897",
+          "hash": "8448326482618543746",
           "deps": [
             "npm:@nestjs/websockets",
             "npm:@nestjs/common",
@@ -702,6 +717,18 @@
           "hash": "14344613820759784992",
           "deps": [
             "npm:@nestjs/common"
+          ]
+        },
+        {
+          "file": "apps/dmr-server/src/modules/gateway/rabbitmq-socket-integration.spec.ts",
+          "hash": "13629591144786900415",
+          "deps": [
+            "npm:@nestjs/testing",
+            "npm:@nestjs/event-emitter",
+            "npm:socket.io",
+            "npm:vitest",
+            "npm:@nestjs/common",
+            "shared"
           ]
         },
         {

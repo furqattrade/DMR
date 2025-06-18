@@ -1,8 +1,11 @@
+import { AgentEncryptedMessageDto, MessageType } from '@dmr/shared';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import * as rabbit from 'amqplib';
 import { ConsumeMessage } from 'amqplib';
+import { randomUUID } from 'node:crypto';
 import { rabbitMQConfig, RabbitMQConfig } from '../../common/config';
 
 @Injectable()
@@ -18,6 +21,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     private readonly rabbitMQConfig: RabbitMQConfig,
     private readonly schedulerRegistry: SchedulerRegistry,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -175,10 +179,13 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
         (message: ConsumeMessage): void => {
           try {
             const messageContent = message.content.toString();
-
             this.logger.debug(`Processing message from queue ${queueName}:`, messageContent);
+
+            this.forwardMessageToAgent(queueName, messageContent);
+            this._channel.ack(message);
           } catch (error) {
             this.logger.error(`Error processing message from queue ${queueName}:`, error);
+            this._channel.nack(message, false, false);
           }
         },
         { noAck: false },
@@ -193,6 +200,43 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
         this.logger.error(`Error subscribing to queue ${queueName}: ${error.message}`);
       }
       return false;
+    }
+  }
+
+  private forwardMessageToAgent(agentId: string, messageContent: string): void {
+    try {
+      let parsedMessage: Record<string, unknown>;
+
+      try {
+        // Parse the message content and ensure it's a valid object
+        const parsed: unknown = JSON.parse(messageContent);
+        parsedMessage =
+          typeof parsed === 'object' && parsed !== null
+            ? (parsed as Record<string, unknown>)
+            : { value: parsed };
+      } catch {
+        // If not valid JSON, use the raw message content
+        parsedMessage = { rawContent: messageContent };
+      }
+
+      // Create an encrypted message DTO to send to the agent
+      const encryptedMessage: AgentEncryptedMessageDto = {
+        id: randomUUID(),
+        timestamp: new Date().toISOString(),
+        senderId: 'dmr-server', // The DMR server is the sender
+        recipientId: agentId, // The agent is the recipient
+        type: MessageType.Message,
+        payload: JSON.stringify(parsedMessage), // For now, we're just forwarding the message as-is
+      };
+
+      // Emit an event that will be caught by the AgentGateway
+      this.eventEmitter.emit('rabbitmq.message', { agentId, message: encryptedMessage });
+
+      this.logger.log(`Message forwarded to agent ${agentId}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error(`Error forwarding message to agent ${agentId}: ${error.message}`);
+      }
     }
   }
 
