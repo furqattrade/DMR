@@ -1,19 +1,19 @@
-import {
-  WebSocketGateway,
-  SubscribeMessage,
-  MessageBody,
-  ConnectedSocket,
-  WebSocketServer,
-  OnGatewayDisconnect,
-  OnGatewayConnection,
-} from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
-import { Server, Socket } from 'socket.io';
-import { AuthService } from '../auth/auth.service';
-import { RabbitMQService } from '../../libs/rabbitmq';
-import { CentOpsService } from '../centops/centops.service';
 import { AgentEncryptedMessageDto, AgentEventNames, CentOpsEvent } from '@dmr/shared';
+import { Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import {
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { RabbitMQService } from '../../libs/rabbitmq';
+import { AuthService } from '../auth/auth.service';
+import { CentOpsService } from '../centops/centops.service';
 import { CentOpsConfigurationDifference } from '../centops/interfaces/cent-ops-configuration-difference.interface';
 
 @WebSocketGateway({
@@ -74,28 +74,18 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log('Agent configurations updated and emitted to all connected clients');
   }
 
-  /**
-   * Listen for RabbitMQ messages and forward them to the appropriate agent
-   * @param payload The message payload containing the agent ID and message
-   */
-  @OnEvent('rabbitmq.message')
+  @OnEvent(CentOpsEvent.FORWARD_MESSAGE_TO_AGENT)
   onRabbitMQMessage(payload: { agentId: string; message: AgentEncryptedMessageDto }): void {
     try {
       const { agentId, message } = payload;
-
-      // Find all socket connections for this agent
       const sockets = this.findSocketsByAgentId(agentId);
-
       if (sockets.length === 0) {
         this.logger.warn(`No connected sockets found for agent ${agentId}`);
         return;
       }
-
-      // Send the message to all connected sockets for this agent
       for (const socket of sockets) {
         socket.emit(AgentEventNames.MESSAGE_FROM_DMR_SERVER, message);
       }
-
       this.logger.log(`Message forwarded to ${sockets.length} socket(s) for agent ${agentId}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -103,24 +93,14 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  /**
-   * Find all socket connections for a specific agent ID
-   * @param agentId The agent ID to find sockets for
-   * @returns Array of socket connections
-   */
   private findSocketsByAgentId(agentId: string): Socket[] {
     const sockets: Socket[] = [];
-
-    // Get all connected sockets
     const connectedSockets = this.server.sockets.sockets;
-
-    // Find sockets that belong to the specified agent
     connectedSockets.forEach((socket: Socket) => {
       if (socket.agent?.sub === agentId) {
         sockets.push(socket);
       }
     });
-
     return sockets;
   }
 

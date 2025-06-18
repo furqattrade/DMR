@@ -27,60 +27,36 @@
   "fileMap": {
     "nonProjectFiles": [
       {
+        "file": ".gitignore",
+        "hash": "407343088930216244"
+      },
+      {
+        "file": "docs/rabbitmq-configuration.md",
+        "hash": "14627675043062936469"
+      },
+      {
         "file": ".vscode/settings.json",
         "hash": "14177152394205458254"
       },
       {
-        "file": ".npmrc",
-        "hash": "754837060302785938"
-      },
-      {
-        "file": ".github/actions/setup/action.yml",
-        "hash": "1041381079162519325"
-      },
-      {
-        "file": "tsconfig.base.json",
-        "hash": "5892148436194731464"
+        "file": "eslint.config.mjs",
+        "hash": "5366387265814877562"
       },
       {
         "file": ".nvmrc",
         "hash": "9810507002215836495"
       },
       {
-        "file": ".vscode/extensions.json",
-        "hash": "17637368926737444469"
-      },
-      {
-        "file": ".prettierrc",
-        "hash": "3416863897412338355"
-      },
-      {
-        "file": "package.json",
-        "hash": "4435922187272274371"
-      },
-      {
-        "file": "pnpm-lock.yaml",
-        "hash": "2563116192993871335"
-      },
-      {
         "file": ".prettierignore",
         "hash": "17085498363870782104"
       },
       {
-        "file": "nx.json",
-        "hash": "5742565452995133391"
+        "file": ".editorconfig",
+        "hash": "11532813898455409296"
       },
       {
-        "file": ".github/workflows/run-checks.yml",
-        "hash": "201772816854762309"
-      },
-      {
-        "file": ".gitignore",
-        "hash": "407343088930216244"
-      },
-      {
-        "file": "eslint.config.mjs",
-        "hash": "5366387265814877562"
+        "file": "pnpm-lock.yaml",
+        "hash": "2563116192993871335"
       },
       {
         "file": "README.md",
@@ -91,12 +67,40 @@
         "hash": "3023922340996625698"
       },
       {
-        "file": ".editorconfig",
-        "hash": "11532813898455409296"
+        "file": ".npmrc",
+        "hash": "754837060302785938"
+      },
+      {
+        "file": ".vscode/extensions.json",
+        "hash": "17637368926737444469"
+      },
+      {
+        "file": ".github/actions/setup/action.yml",
+        "hash": "1041381079162519325"
       },
       {
         "file": "LICENSE",
         "hash": "3473145850101588107"
+      },
+      {
+        "file": ".github/workflows/run-checks.yml",
+        "hash": "201772816854762309"
+      },
+      {
+        "file": "tsconfig.base.json",
+        "hash": "5892148436194731464"
+      },
+      {
+        "file": "package.json",
+        "hash": "4435922187272274371"
+      },
+      {
+        "file": ".prettierrc",
+        "hash": "3416863897412338355"
+      },
+      {
+        "file": "nx.json",
+        "hash": "5742565452995133391"
       }
     ],
     "projectFileMap": {
@@ -358,6 +362,13 @@
           ]
         },
         {
+          "file": "libs/shared/src/dtos/agent-message.dto.ts",
+          "hash": "8722592806553703356",
+          "deps": [
+            "npm:class-validator"
+          ]
+        },
+        {
           "file": "libs/shared/src/dtos/agent.dto.ts",
           "hash": "436026256558363399",
           "deps": [
@@ -387,11 +398,11 @@
         },
         {
           "file": "libs/shared/src/dtos/index.ts",
-          "hash": "2196786243835874563"
+          "hash": "4653318150972540849"
         },
         {
           "file": "libs/shared/src/enums/agent-event-names.enum.ts",
-          "hash": "17559853508640134908"
+          "hash": "5293766881489852163"
         },
         {
           "file": "libs/shared/src/enums/app.enum.constant.ts",
@@ -399,11 +410,11 @@
         },
         {
           "file": "libs/shared/src/enums/cent-ops-event.enum.ts",
-          "hash": "12162674989962823357"
+          "hash": "11068904420830259568"
         },
         {
           "file": "libs/shared/src/enums/index.ts",
-          "hash": "4913706194564812098"
+          "hash": "4730895988243208602"
         },
         {
           "file": "libs/shared/src/enums/message-type.enum.ts",
@@ -423,7 +434,7 @@
         },
         {
           "file": "libs/shared/src/interfaces/index.ts",
-          "hash": "3827970187926448282"
+          "hash": "2524419688849532304"
         },
         {
           "file": "libs/shared/src/interfaces/jwt-payload.interface.ts",
@@ -474,7 +485,7 @@
       "dmr-server": [
         {
           "file": "apps/dmr-server/.env.example",
-          "hash": "9821098444276507458"
+          "hash": "9086924359676953406"
         },
         {
           "file": "apps/dmr-server/docker-compose.yml",
@@ -547,15 +558,16 @@
         },
         {
           "file": "apps/dmr-server/src/libs/rabbitmq/rabbitmq-message-forwarding.spec.ts",
-          "hash": "9128852001697298609",
+          "hash": "5912686445512791177",
           "deps": [
-            "npm:@nestjs/testing",
-            "npm:@nestjs/event-emitter",
-            "npm:vitest",
-            "npm:@nestjs/common",
             "shared",
             "npm:@nestjs/cache-manager",
-            "npm:@nestjs/schedule"
+            "npm:@nestjs/common",
+            "npm:@nestjs/event-emitter",
+            "npm:@nestjs/schedule",
+            "npm:@nestjs/testing",
+            "npm:amqplib",
+            "npm:vitest"
           ]
         },
         {
@@ -567,18 +579,19 @@
         },
         {
           "file": "apps/dmr-server/src/libs/rabbitmq/rabbitmq.service.spec.ts",
-          "hash": "16053607841812421273",
+          "hash": "419057314267808567",
           "deps": [
             "npm:@nestjs/cache-manager",
             "npm:@nestjs/schedule",
             "npm:@nestjs/testing",
+            "npm:@nestjs/event-emitter",
             "npm:vitest",
             "npm:amqplib"
           ]
         },
         {
           "file": "apps/dmr-server/src/libs/rabbitmq/rabbitmq.service.ts",
-          "hash": "6110345411941462032",
+          "hash": "736098099480980917",
           "deps": [
             "shared",
             "npm:@nestjs/cache-manager",
@@ -691,14 +704,24 @@
           ]
         },
         {
-          "file": "apps/dmr-server/src/modules/gateway/agent.gateway.ts",
-          "hash": "8448326482618543746",
+          "file": "apps/dmr-server/src/modules/gateway/agent-message-handling.spec.ts",
+          "hash": "3307282168846482023",
           "deps": [
-            "npm:@nestjs/websockets",
-            "npm:@nestjs/common",
-            "npm:socket.io",
             "shared",
-            "npm:@nestjs/event-emitter"
+            "npm:@nestjs/testing",
+            "npm:socket.io",
+            "npm:vitest"
+          ]
+        },
+        {
+          "file": "apps/dmr-server/src/modules/gateway/agent.gateway.ts",
+          "hash": "5728460307547042067",
+          "deps": [
+            "shared",
+            "npm:@nestjs/common",
+            "npm:@nestjs/event-emitter",
+            "npm:@nestjs/websockets",
+            "npm:socket.io"
           ]
         },
         {
@@ -717,18 +740,6 @@
           "hash": "14344613820759784992",
           "deps": [
             "npm:@nestjs/common"
-          ]
-        },
-        {
-          "file": "apps/dmr-server/src/modules/gateway/rabbitmq-socket-integration.spec.ts",
-          "hash": "13629591144786900415",
-          "deps": [
-            "npm:@nestjs/testing",
-            "npm:@nestjs/event-emitter",
-            "npm:socket.io",
-            "npm:vitest",
-            "npm:@nestjs/common",
-            "shared"
           ]
         },
         {

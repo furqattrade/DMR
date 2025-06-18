@@ -13601,12 +13601,12 @@
       },
       {
         "source": "dmr-server",
-        "target": "npm:vitest",
+        "target": "npm:amqplib",
         "type": "static"
       },
       {
         "source": "dmr-server",
-        "target": "npm:amqplib",
+        "target": "npm:vitest",
         "type": "static"
       },
       {
@@ -13656,12 +13656,12 @@
       },
       {
         "source": "dmr-server",
-        "target": "npm:@nestjs/websockets",
+        "target": "npm:socket.io",
         "type": "static"
       },
       {
         "source": "dmr-server",
-        "target": "npm:socket.io",
+        "target": "npm:@nestjs/websockets",
         "type": "static"
       },
       {
@@ -31114,5 +31114,5 @@
   },
   "version": "6.0",
   "errors": [],
-  "computedAt": 1750253424441
+  "computedAt": 1750258749202
 }

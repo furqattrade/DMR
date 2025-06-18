@@ -1,22 +1,19 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CentOpsEvent } from '@dmr/shared';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Logger } from '@nestjs/common';
-import { AgentEncryptedMessageDto, MessageType } from '@dmr/shared';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { Test, TestingModule } from '@nestjs/testing';
+import { ConsumeMessage } from 'amqplib';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { rabbitMQConfig } from '../../common/config';
 import { RabbitMQService } from './rabbitmq.service';
-import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import { SchedulerRegistry } from '@nestjs/schedule';
 
-describe('RabbitMQService - Message Forwarding', () => {
+describe('RabbitMQ Message Forwarding', () => {
   let service: RabbitMQService;
   let eventEmitter: EventEmitter2;
-  let loggerSpy: ReturnType<typeof vi.spyOn>;
-  let loggerErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RabbitMQService,
@@ -48,10 +45,6 @@ describe('RabbitMQService - Message Forwarding', () => {
           provide: EventEmitter2,
           useValue: {
             emit: vi.fn(),
-            on: vi.fn(),
-            once: vi.fn(),
-            removeListener: vi.fn(),
-            removeAllListeners: vi.fn(),
           },
         },
       ],
@@ -60,171 +53,116 @@ describe('RabbitMQService - Message Forwarding', () => {
     service = module.get<RabbitMQService>(RabbitMQService);
     eventEmitter = module.get<EventEmitter2>(EventEmitter2);
 
-    // Mock logger methods
-    loggerSpy = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
-    loggerErrorSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
-
-    // Mock the connection to RabbitMQ
-    vi.spyOn(service as any, '_connection', 'get').mockReturnValue({
-      createChannel: vi.fn().mockResolvedValue({
-        consume: vi.fn(),
-        ack: vi.fn(),
-      }),
-    });
-  });
-
-  afterEach(() => {
-    loggerSpy.mockRestore();
-    loggerErrorSpy.mockRestore();
+    (service as any)._channel = {
+      ack: vi.fn(),
+    };
   });
 
   describe('forwardMessageToAgent', () => {
-    it('should parse JSON message and emit event with AgentEncryptedMessageDto', () => {
-      const queueName = 'test-agent-id';
-      const messageContent = JSON.stringify({ data: 'test message' });
-      
-      service.forwardMessageToAgent(queueName, messageContent);
-      
-      expect(eventEmitter.emit).toHaveBeenCalledWith('rabbitmq.message', {
-        agentId: queueName,
+    it('should parse message content and emit event', () => {
+      const agentId = 'test-agent-id';
+      const mockMessage = {
+        content: Buffer.from(
+          JSON.stringify({
+            id: 'test-message-id',
+            senderId: 'test-sender-id',
+            recipientId: agentId,
+            timestamp: '2025-06-18T14:00:00Z',
+            payload: '{"key":"value"}',
+          }),
+        ),
+      } as ConsumeMessage;
+
+      (service as any).forwardMessageToAgent(agentId, mockMessage);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(CentOpsEvent.FORWARD_MESSAGE_TO_AGENT, {
+        agentId,
         message: expect.objectContaining({
-          id: expect.any(String),
-          timestamp: expect.any(String),
-          senderId: 'dmr-server',
-          recipientId: queueName,
-          type: MessageType.Message,
-          payload: messageContent,
+          id: 'test-message-id',
+          senderId: 'test-sender-id',
         }),
       });
     });
 
-    it('should handle non-JSON message content', () => {
-      const queueName = 'test-agent-id';
-      const messageContent = 'This is not valid JSON';
-      
-      service.forwardMessageToAgent(queueName, messageContent);
-      
-      expect(eventEmitter.emit).toHaveBeenCalledWith('rabbitmq.message', {
-        agentId: queueName,
-        message: expect.objectContaining({
-          id: expect.any(String),
-          timestamp: expect.any(String),
-          senderId: 'dmr-server',
-          recipientId: queueName,
-          type: MessageType.Message,
-          payload: messageContent,
-        }),
-      });
-    });
+    it('should handle JSON parsing errors', () => {
+      const agentId = 'test-agent-id';
+      const mockMessage = {
+        content: Buffer.from('invalid-json'),
+      } as ConsumeMessage;
 
-    it('should handle errors during event emission', () => {
-      const queueName = 'test-agent-id';
-      const messageContent = JSON.stringify({ data: 'test message' });
-      
-      // Mock eventEmitter.emit to throw an error
-      vi.spyOn(eventEmitter, 'emit').mockImplementation(() => {
-        throw new Error('Event emission error');
-      });
-      
-      // This should not throw
-      service.forwardMessageToAgent(queueName, messageContent);
-      
-      // Verify error was logged
-      expect(loggerErrorSpy).toHaveBeenCalledWith(
-        'Error forwarding message to agent test-agent-id:',
-        expect.any(Error)
+      const loggerSpy = vi.spyOn(Logger.prototype, 'error');
+
+      (service as any).forwardMessageToAgent(agentId, mockMessage);
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining(`Error forwarding message to agent ${agentId}`),
       );
     });
   });
 
-  describe('subscribe with message forwarding', () => {
-    it('should call forwardMessageToAgent when a message is received', async () => {
-      const queueName = 'test-agent-id';
-      const mockConsumerTag = 'consumer-tag-123';
+  describe('subscribe method', () => {
+    it('should process messages and acknowledge them', async () => {
+      const queueName = 'test-queue';
       const mockMessage = {
-        content: Buffer.from(JSON.stringify({ data: 'test message' })),
-      };
-      
-      // Mock the channel.consume method to capture the callback
-      let consumeCallback: Function;
-      const consumeMock = vi.fn().mockImplementation((queue, callback) => {
-        consumeCallback = callback;
-        return Promise.resolve({ consumerTag: mockConsumerTag });
+        content: Buffer.from(
+          JSON.stringify({
+            id: 'test-message-id',
+            senderId: 'test-sender-id',
+          }),
+        ),
+      } as ConsumeMessage;
+
+      let capturedCallback: (msg: ConsumeMessage) => void;
+      (service as any)._channel.consume = vi.fn((queue, callback) => {
+        capturedCallback = callback;
+        return Promise.resolve({ consumerTag: 'test-tag' });
       });
-      
-      const ackMock = vi.fn();
-      
-      // Set up the channel mock
-      vi.spyOn(service as any, '_channel', 'get').mockReturnValue({
-        consume: consumeMock,
-        ack: ackMock,
-        checkQueue: vi.fn().mockResolvedValue(true),
-      });
-      
-      // Mock forwardMessageToAgent
-      const forwardSpy = vi.spyOn(service, 'forwardMessageToAgent');
-      
-      // Call subscribe
+
+      vi.spyOn(service, 'checkQueue').mockResolvedValue(true);
+
+      const forwardSpy = vi.spyOn(service as any, 'forwardMessageToAgent');
+
       await service.subscribe(queueName);
-      
-      // Verify consume was called
-      expect(consumeMock).toHaveBeenCalledWith(queueName, expect.any(Function), { noAck: false });
-      
-      // Simulate receiving a message by calling the captured callback
-      consumeCallback(mockMessage);
-      
-      // Verify forwardMessageToAgent was called with the right arguments
-      expect(forwardSpy).toHaveBeenCalledWith(
+
+      expect((service as any)._channel.consume).toHaveBeenCalledWith(
         queueName,
-        JSON.stringify({ data: 'test message' })
+        expect.any(Function),
+        { noAck: false },
       );
-      
-      // Verify message was acknowledged
-      expect(ackMock).toHaveBeenCalledWith(mockMessage);
+
+      capturedCallback(mockMessage);
+
+      expect(forwardSpy).toHaveBeenCalledWith(queueName, mockMessage);
+
+      expect((service as any)._channel.ack).toHaveBeenCalledWith(mockMessage);
     });
 
-    it('should handle errors during message processing', async () => {
-      const queueName = 'test-agent-id';
-      const mockConsumerTag = 'consumer-tag-123';
+    it('should handle errors and nack messages when processing fails', async () => {
+      const queueName = 'test-queue';
       const mockMessage = {
-        content: Buffer.from('invalid content'),
-      };
-      
-      // Mock the channel.consume method to capture the callback
-      let consumeCallback: Function;
-      const consumeMock = vi.fn().mockImplementation((queue, callback) => {
-        consumeCallback = callback;
-        return Promise.resolve({ consumerTag: mockConsumerTag });
+        content: Buffer.from('invalid-json'),
+      } as ConsumeMessage;
+
+      let capturedCallback: (msg: ConsumeMessage) => void;
+      (service as any)._channel.consume = vi.fn((queue, callback) => {
+        capturedCallback = callback;
+        return Promise.resolve({ consumerTag: 'test-tag' });
       });
-      
-      const ackMock = vi.fn();
-      
-      // Set up the channel mock
-      vi.spyOn(service as any, '_channel', 'get').mockReturnValue({
-        consume: consumeMock,
-        ack: ackMock,
-        checkQueue: vi.fn().mockResolvedValue(true),
+
+      vi.spyOn(service, 'checkQueue').mockResolvedValue(true);
+
+      vi.spyOn(service as any, 'forwardMessageToAgent').mockImplementation(() => {
+        throw new Error('Test error');
       });
-      
-      // Mock forwardMessageToAgent to throw an error
-      vi.spyOn(service, 'forwardMessageToAgent').mockImplementation(() => {
-        throw new Error('Processing error');
-      });
-      
-      // Call subscribe
+
+      (service as any)._channel.nack = vi.fn();
+
       await service.subscribe(queueName);
-      
-      // Simulate receiving a message by calling the captured callback
-      consumeCallback(mockMessage);
-      
-      // Verify error was logged
-      expect(loggerErrorSpy).toHaveBeenCalledWith(
-        `Error processing message from queue ${queueName}:`,
-        expect.any(Error)
-      );
-      
-      // Verify message was still acknowledged despite the error
-      expect(ackMock).toHaveBeenCalledWith(mockMessage);
+
+      capturedCallback(mockMessage);
+
+      expect((service as any)._channel.ack).not.toHaveBeenCalled();
+      expect((service as any)._channel.nack).toHaveBeenCalledWith(mockMessage, false, false);
     });
   });
 });

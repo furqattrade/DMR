@@ -1,6 +1,7 @@
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { rabbitMQConfig } from '../../common/config';
@@ -65,6 +66,7 @@ describe('RabbitMQService', () => {
   let service: RabbitMQService;
   let schedulerRegistry: SchedulerRegistry;
   let cacheManager: Cache;
+  let eventEmitter: EventEmitter2;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -96,12 +98,19 @@ describe('RabbitMQService', () => {
             del: vi.fn(),
           },
         },
+        {
+          provide: EventEmitter2,
+          useValue: {
+            emit: vi.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<RabbitMQService>(RabbitMQService);
     schedulerRegistry = module.get<SchedulerRegistry>(SchedulerRegistry);
     cacheManager = module.get(CACHE_MANAGER);
+    eventEmitter = module.get<EventEmitter2>(EventEmitter2);
 
     await service.onModuleInit();
   });
