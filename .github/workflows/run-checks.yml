@@ -31,6 +31,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
+
+      - name: Use env for server
+        if: matrix.name == 'test-server'
+        run: cp apps/dmr-server/.env.example apps/dmr-server/.env
+
+      - name: Use env for agent
+        if: matrix.name == 'test-agent'
+        run: cp apps/dmr-agent/.env.example apps/dmr-agent/.env
+
       - run: ${{ matrix.command }}
 
   build:

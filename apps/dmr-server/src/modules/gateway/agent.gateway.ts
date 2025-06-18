@@ -14,6 +14,11 @@ import { AuthService } from '../auth/auth.service';
 import { RabbitMQService } from '../../libs/rabbitmq/rabbitmq.service';
 import { RabbitMQMessageService } from '../../libs/rabbitmq/rabbitmq-message.service';
 import { MessageValidatorService } from './message-validator.service';
+import { RabbitMQService } from '../../libs/rabbitmq';
+import { CentOpsService } from '../centops/centops.service';
+import { AgentEventNames, CentOpsEvent } from '@dmr/shared';
+import { OnEvent } from '@nestjs/event-emitter';
+import { CentOpsConfigurationDifference } from '../centops/interfaces/cent-ops-configuration-difference.interface';
 
 @WebSocketGateway({
   connectionStateRecovery: {
@@ -32,6 +37,7 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly rabbitService: RabbitMQService,
     private readonly messageValidator: MessageValidatorService,
     private readonly rabbitMQMessageService: RabbitMQMessageService,
+    private readonly centOpsService: CentOpsService,
   ) {}
 
   async handleConnection(@ConnectedSocket() client: Socket): Promise<void> {
@@ -46,6 +52,9 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!consume) {
         client.disconnect();
       }
+
+      const centOpsConfigurations = await this.centOpsService.getCentOpsConfigurations();
+      this.server.emit(AgentEventNames.FULL_AGENT_LIST, centOpsConfigurations);
 
       Object.assign(client, { agent: jwtPayload });
     } catch {
