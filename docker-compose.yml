@@ -6,8 +6,8 @@ services:
     container_name: dmr-rabbitmq
     restart: always
     ports:
-      - "8070:5672"   # AMQP port
-      - "8071:15672"  # Management UI
+      - '8070:5672' # AMQP port
+      - '8071:15672' # Management UI
     environment:
       - RABBITMQ_DEFAULT_USER=user
       - RABBITMQ_DEFAULT_PASS=pass
@@ -20,7 +20,7 @@ services:
     networks:
       - bykstack
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      test: ['CMD', 'rabbitmq-diagnostics', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,7 +32,7 @@ services:
     container_name: dmr-server
     restart: always
     ports:
-      - "8072:5000" 
+      - '8072:5000'
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -62,7 +62,7 @@ services:
     container_name: dmr-agent-1
     restart: always
     ports:
-      - "8073:5001"  # Agent 1 port
+      - '8073:5001' # Agent 1 port
     depends_on:
       - dmr-server
     environment:
@@ -83,7 +83,7 @@ services:
     container_name: dmr-agent-2
     restart: always
     ports:
-      - "8074:5001"  # Agent 2 port
+      - '8074:5001' # Agent 2 port
     depends_on:
       - dmr-server
     environment:
