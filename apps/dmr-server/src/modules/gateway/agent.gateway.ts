@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 import { AgentEncryptedMessageDto, AgentEventNames, CentOpsEvent } from '@dmr/shared';
-import { Logger } from '@nestjs/common';
-=======
-import { AgentEventNames, AgentMessageDto, CentOpsEvent, ValidationErrorDto } from '@dmr/shared';
 import { BadRequestException, Logger } from '@nestjs/common';
->>>>>>> a6fa9b5f31c9a9720d154a831ead0ebd4a8e67e6
 import { OnEvent } from '@nestjs/event-emitter';
 import {
   ConnectedSocket,
@@ -16,12 +11,8 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-<<<<<<< HEAD
 import { RabbitMQService } from '../../libs/rabbitmq';
-=======
 import { RabbitMQMessageService } from '../../libs/rabbitmq/rabbitmq-message.service';
-import { RabbitMQService } from '../../libs/rabbitmq/rabbitmq.service';
->>>>>>> a6fa9b5f31c9a9720d154a831ead0ebd4a8e67e6
 import { AuthService } from '../auth/auth.service';
 import { CentOpsService } from '../centops/centops.service';
 import { CentOpsConfigurationDifference } from '../centops/interfaces/cent-ops-configuration-difference.interface';
@@ -116,7 +107,6 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
     return sockets;
   }
-
 
   @SubscribeMessage(AgentEventNames.MESSAGE_TO_DMR_SERVER)
   async handleMessage(

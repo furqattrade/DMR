@@ -2,10 +2,12 @@ import { AgentEncryptedMessageDto, AgentEventNames, MessageType } from '@dmr/sha
 import { Test, TestingModule } from '@nestjs/testing';
 import { Server } from 'socket.io';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { RabbitMQMessageService } from '../../libs/rabbitmq/rabbitmq-message.service';
 import { RabbitMQService } from '../../libs/rabbitmq';
 import { AuthService } from '../auth/auth.service';
 import { CentOpsService } from '../centops/centops.service';
 import { AgentGateway } from './agent.gateway';
+import { MessageValidatorService } from './message-validator.service';
 
 describe('Agent Gateway Message Handling', () => {
   let gateway: AgentGateway;
@@ -61,6 +63,18 @@ describe('Agent Gateway Message Handling', () => {
             setupQueue: vi.fn(),
             subscribe: vi.fn(),
             unsubscribe: vi.fn(),
+          },
+        },
+        {
+          provide: MessageValidatorService,
+          useValue: {
+            validateMessage: vi.fn(),
+          },
+        },
+        {
+          provide: RabbitMQMessageService,
+          useValue: {
+            sendValidationFailure: vi.fn(),
           },
         },
         {
