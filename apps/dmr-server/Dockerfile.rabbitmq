@@ -1,7 +1,0 @@
-FROM rabbitmq:3.12-management
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-COPY init-rabbit.sh /init-rabbit.sh
-RUN chmod +x /init-rabbit.sh
-
-
-ENTRYPOINT ["/init-rabbit.sh"]

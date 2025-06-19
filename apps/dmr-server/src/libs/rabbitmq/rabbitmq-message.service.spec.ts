@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Logger } from '@nestjs/common';
 import { RabbitMQMessageService } from './rabbitmq-message.service';
 import { RabbitMQService } from './rabbitmq.service';
-import { RABBITMQ_CONFIG_TOKEN } from '../../common/config';
+import { RABBITMQ_CONFIG_TOKEN, rabbitMQConfig } from '../../common/config';
 import { MessageType, ValidationErrorType } from '@dmr/shared';
 
 describe('RabbitMQMessageService', () => {
@@ -24,6 +24,8 @@ describe('RabbitMQMessageService', () => {
       channel: channelMock,
       checkQueue: vi.fn().mockResolvedValue(true),
       setupQueue: vi.fn().mockResolvedValue(true),
+      setupQueueWithoutDLQ: vi.fn().mockResolvedValue(true),
+      rabbitMQConfig: mockConfig,
     };
 
     vi.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
@@ -39,7 +41,7 @@ describe('RabbitMQMessageService', () => {
           useValue: rabbitMQServiceMock,
         },
         {
-          provide: RABBITMQ_CONFIG_TOKEN,
+          provide: rabbitMQConfig.KEY,
           useValue: mockConfig,
         },
       ],

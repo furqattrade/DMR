@@ -1,5 +1,6 @@
 import { AgentMessageDto, SimpleValidationFailureMessage, ValidationErrorDto } from '@dmr/shared';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { rabbitMQConfig, RabbitMQConfig } from '../../common/config';
 import { RabbitMQService } from './rabbitmq.service';
 
 @Injectable()
@@ -12,7 +13,11 @@ export class RabbitMQMessageService {
     return crypto.randomUUID();
   }
 
-  constructor(private readonly rabbitMQService: RabbitMQService) {
+  constructor(
+    private readonly rabbitMQService: RabbitMQService,
+    @Inject(rabbitMQConfig.KEY)
+    private readonly rabbitMQConfig: RabbitMQConfig,
+  ) {
     void this.setupValidationFailuresQueue();
   }
 
@@ -74,40 +79,38 @@ export class RabbitMQMessageService {
     }
   }
 
-  sendValidationFailure(
+  private extractMessageId(originalMessage: unknown): string {
+    try {
+      if (
+        typeof originalMessage === 'object' &&
+        originalMessage !== null &&
+        'id' in originalMessage
+      ) {
+        const messageWithId = originalMessage as { id?: unknown };
+
+        if (
+          messageWithId.id !== undefined &&
+          messageWithId.id !== null &&
+          (typeof messageWithId.id === 'string' || typeof messageWithId.id === 'number')
+        ) {
+          return String(messageWithId.id);
+        }
+      }
+      return this.generateUuid();
+    } catch {
+      this.logger.debug('Error extracting original message ID, using generated UUID instead');
+      return this.generateUuid();
+    }
+  }
+
+  async sendValidationFailure(
     originalMessage: unknown,
     errors: ValidationErrorDto[],
     receivedAt: string,
   ): Promise<boolean> {
     try {
       const channel = this.rabbitMQService.channel;
-
-      let messageId: string;
-
-      try {
-        if (
-          typeof originalMessage === 'object' &&
-          originalMessage !== null &&
-          'id' in originalMessage
-        ) {
-          const messageWithId = originalMessage as { id?: unknown };
-
-          if (
-            messageWithId.id !== undefined &&
-            messageWithId.id !== null &&
-            (typeof messageWithId.id === 'string' || typeof messageWithId.id === 'number')
-          ) {
-            messageId = String(messageWithId.id);
-          } else {
-            messageId = this.generateUuid();
-          }
-        } else {
-          messageId = this.generateUuid();
-        }
-      } catch {
-        messageId = this.generateUuid();
-        this.logger.debug('Error extracting original message ID, using generated UUID instead');
-      }
+      const messageId = this.extractMessageId(originalMessage);
 
       const failureMessage: SimpleValidationFailureMessage = {
         id: messageId,
@@ -115,6 +118,21 @@ export class RabbitMQMessageService {
         receivedAt,
         message: originalMessage,
       };
+
+      // Check if queue exists, if not create it
+      const queueExists = await this.rabbitMQService.checkQueue(this.VALIDATION_FAILURES_QUEUE);
+      if (!queueExists) {
+        const success = await this.rabbitMQService.setupQueueWithoutDLQ(
+          this.VALIDATION_FAILURES_QUEUE,
+          this.rabbitMQConfig.validationFailuresTTL,
+        );
+        if (!success) {
+          this.logger.error(
+            `Failed to create validation failures queue ${this.VALIDATION_FAILURES_QUEUE}`,
+          );
+          return false;
+        }
+      }
 
       const success = channel.sendToQueue(
         this.VALIDATION_FAILURES_QUEUE,
