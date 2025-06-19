@@ -1,5 +1,6 @@
-import { AgentEventNames, AgentMessageDto, ValidationErrorDto } from '@dmr/shared';
+import { AgentEventNames, AgentMessageDto, CentOpsEvent, ValidationErrorDto } from '@dmr/shared';
 import { BadRequestException, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import {
   ConnectedSocket,
   MessageBody,
@@ -14,6 +15,7 @@ import { RabbitMQMessageService } from '../../libs/rabbitmq/rabbitmq-message.ser
 import { RabbitMQService } from '../../libs/rabbitmq/rabbitmq.service';
 import { AuthService } from '../auth/auth.service';
 import { CentOpsService } from '../centops/centops.service';
+import { CentOpsConfigurationDifference } from '../centops/interfaces/cent-ops-configuration-difference.interface';
 import { MessageValidatorService } from './message-validator.service';
 
 @WebSocketGateway({
@@ -69,6 +71,13 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Agent disconnected: ${agentId} (Socket ID: ${client.id})`);
   }
 
+  @OnEvent(CentOpsEvent.UPDATED)
+  onAgentConfigUpdate(data: CentOpsConfigurationDifference): void {
+    this.server.emit(AgentEventNames.PARTIAL_AGENT_LIST, [...data.added, ...data.deleted]);
+
+    this.logger.log('Agent configurations updated and emitted to all connected clients');
+  }
+
   @SubscribeMessage(AgentEventNames.MESSAGE_TO_DMR_SERVER)
   async handleMessage(
     @ConnectedSocket() client: Socket,
@@ -90,12 +99,10 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
       | undefined,
     receivedAt: string,
   ): Promise<void> {
-    // Ensure result and message exist before proceeding
     if (!result || !result.message) {
       throw new Error('Validation succeeded but no message was returned');
     }
 
-    // Use type assertion to ensure TypeScript knows this is an AgentMessageDto
     const validatedMessage: AgentMessageDto = result.message;
     await this.rabbitMQMessageService.sendValidMessage(validatedMessage, receivedAt);
     this.logger.log(
@@ -107,31 +114,19 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (error instanceof BadRequestException) {
       const errorData = error.getResponse() as {
         message: string;
-        validationErrors?: ValidationErrorDto[];
-        originalMessage?: unknown;
-        receivedAt?: string;
+        validationErrors: ValidationErrorDto[];
+        originalMessage: unknown;
+        receivedAt: string;
       };
 
-      if (
-        errorData &&
-        typeof errorData === 'object' &&
-        errorData.validationErrors &&
-        Array.isArray(errorData.validationErrors) &&
-        errorData.originalMessage !== undefined &&
-        typeof errorData.receivedAt === 'string'
-      ) {
-        await this.rabbitMQMessageService.sendValidationFailure(
-          errorData.originalMessage,
-          errorData.validationErrors,
-          errorData.receivedAt,
-        );
-      }
-
-      this.logger.warn(
-        `Invalid message received: ${typeof errorData.message === 'string' ? errorData.message : 'Validation error'}`,
+      await this.rabbitMQMessageService.sendValidationFailure(
+        errorData.originalMessage,
+        errorData.validationErrors,
+        errorData.receivedAt,
       );
+
+      this.logger.warn(`Invalid message received: ${errorData.message}`);
     } else {
-      // Handle unexpected errors
       this.logger.error(
         `Unexpected error processing message: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

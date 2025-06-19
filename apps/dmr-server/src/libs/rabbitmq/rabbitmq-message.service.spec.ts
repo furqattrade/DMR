@@ -69,14 +69,37 @@ describe('RabbitMQMessageService', () => {
       );
     });
 
-    it('should log error when validation failures queue does not exist', async () => {
+    it('should create queue when validation failures queue does not exist', async () => {
       vi.spyOn(rabbitMQService, 'checkQueue').mockResolvedValueOnce(false);
-      const errorSpy = vi.spyOn(Logger.prototype, 'error');
+      const logSpy = vi.spyOn(Logger.prototype, 'log');
 
       await (service as any).setupValidationFailuresQueue();
 
+      expect(rabbitMQService.setupQueueWithoutDLQ).toHaveBeenCalledWith(
+        'validation-failures',
+        mockConfig.validationFailuresTTL,
+      );
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Validation failures queue 'validation-failures' does not exist"),
+      );
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "Validation failures queue 'validation-failures' created successfully",
+        ),
+      );
+    });
+
+    it('should throw error when queue creation fails', async () => {
+      vi.spyOn(rabbitMQService, 'checkQueue').mockResolvedValueOnce(false);
+      vi.spyOn(rabbitMQService, 'setupQueueWithoutDLQ').mockResolvedValueOnce(false);
+      const errorSpy = vi.spyOn(Logger.prototype, 'error');
+
+      await expect((service as any).setupValidationFailuresQueue()).rejects.toThrow(
+        "Failed to create validation failures queue 'validation-failures'",
+      );
+
       expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Validation failures queue 'validation-failures' not found"),
+        expect.stringContaining('Failed to create validation failures queue'),
       );
     });
 
@@ -85,11 +108,23 @@ describe('RabbitMQMessageService', () => {
       vi.spyOn(rabbitMQService, 'checkQueue').mockRejectedValueOnce(testError);
       const errorSpy = vi.spyOn(Logger.prototype, 'error');
 
-      await (service as any).setupValidationFailuresQueue();
+      await expect((service as any).setupValidationFailuresQueue()).rejects.toThrow('Test error');
 
       expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Error checking validation failures queue: Test error'),
+        expect.stringContaining('Error setting up validation failures queue: Test error'),
       );
+    });
+  });
+
+  describe('onModuleInit', () => {
+    it('should call setupValidationFailuresQueue', async () => {
+      const setupSpy = vi
+        .spyOn(service as any, 'setupValidationFailuresQueue')
+        .mockResolvedValueOnce(undefined);
+
+      await service.onModuleInit();
+
+      expect(setupSpy).toHaveBeenCalled();
     });
   });
 
@@ -244,5 +279,7 @@ describe('RabbitMQMessageService', () => {
         expect.stringContaining('Failed to send validation failure message'),
       );
     });
+
+    // Queue existence check and creation is now handled in onModuleInit
   });
 });

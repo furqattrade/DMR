@@ -1,10 +1,10 @@
 import { AgentMessageDto, SimpleValidationFailureMessage, ValidationErrorDto } from '@dmr/shared';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { rabbitMQConfig, RabbitMQConfig } from '../../common/config';
 import { RabbitMQService } from './rabbitmq.service';
 
 @Injectable()
-export class RabbitMQMessageService {
+export class RabbitMQMessageService implements OnModuleInit {
   private readonly logger = new Logger(RabbitMQMessageService.name);
   private readonly VALIDATION_FAILURES_QUEUE = 'validation-failures';
   private readonly UNKNOWN_ERROR = 'Unknown error';
@@ -17,8 +17,10 @@ export class RabbitMQMessageService {
     private readonly rabbitMQService: RabbitMQService,
     @Inject(rabbitMQConfig.KEY)
     private readonly rabbitMQConfig: RabbitMQConfig,
-  ) {
-    void this.setupValidationFailuresQueue();
+  ) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.setupValidationFailuresQueue();
   }
 
   private async setupValidationFailuresQueue(): Promise<void> {
@@ -30,16 +32,29 @@ export class RabbitMQMessageService {
           `Validation failures queue '${this.VALIDATION_FAILURES_QUEUE}' exists and is ready to use`,
         );
       } else {
-        const errorMessage =
-          `Validation failures queue '${this.VALIDATION_FAILURES_QUEUE}' not found. ` +
-          'This queue should be created during RabbitMQ initialization.';
+        this.logger.log(
+          `Validation failures queue '${this.VALIDATION_FAILURES_QUEUE}' does not exist, creating it now`,
+        );
 
-        this.logger.error(errorMessage);
-        throw new Error(errorMessage);
+        const success = await this.rabbitMQService.setupQueueWithoutDLQ(
+          this.VALIDATION_FAILURES_QUEUE,
+          this.rabbitMQConfig.validationFailuresTTL,
+        );
+
+        if (success) {
+          this.logger.log(
+            `Validation failures queue '${this.VALIDATION_FAILURES_QUEUE}' created successfully`,
+          );
+        } else {
+          const errorMessage = `Failed to create validation failures queue '${this.VALIDATION_FAILURES_QUEUE}'`;
+          this.logger.error(errorMessage);
+          throw new Error(errorMessage);
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : this.UNKNOWN_ERROR;
-      this.logger.error(`Error checking validation failures queue: ${errorMessage}`);
+      this.logger.error(`Error setting up validation failures queue: ${errorMessage}`);
+      throw error;
     }
   }
 
@@ -81,22 +96,10 @@ export class RabbitMQMessageService {
 
   private extractMessageId(originalMessage: unknown): string {
     try {
-      if (
-        typeof originalMessage === 'object' &&
-        originalMessage !== null &&
-        'id' in originalMessage
-      ) {
-        const messageWithId = originalMessage as { id?: unknown };
-
-        if (
-          messageWithId.id !== undefined &&
-          messageWithId.id !== null &&
-          (typeof messageWithId.id === 'string' || typeof messageWithId.id === 'number')
-        ) {
-          return String(messageWithId.id);
-        }
-      }
-      return this.generateUuid();
+      const id = (originalMessage as { id?: unknown })?.id;
+      return id && (typeof id === 'string' || typeof id === 'number')
+        ? String(id)
+        : this.generateUuid();
     } catch {
       this.logger.debug('Error extracting original message ID, using generated UUID instead');
       return this.generateUuid();
@@ -118,21 +121,6 @@ export class RabbitMQMessageService {
         receivedAt,
         message: originalMessage,
       };
-
-      // Check if queue exists, if not create it
-      const queueExists = await this.rabbitMQService.checkQueue(this.VALIDATION_FAILURES_QUEUE);
-      if (!queueExists) {
-        const success = await this.rabbitMQService.setupQueueWithoutDLQ(
-          this.VALIDATION_FAILURES_QUEUE,
-          this.rabbitMQConfig.validationFailuresTTL,
-        );
-        if (!success) {
-          this.logger.error(
-            `Failed to create validation failures queue ${this.VALIDATION_FAILURES_QUEUE}`,
-          );
-          return false;
-        }
-      }
 
       const success = channel.sendToQueue(
         this.VALIDATION_FAILURES_QUEUE,
