@@ -7,8 +7,8 @@ import { rabbitMQConfig, RabbitMQConfig } from '../../common/config';
 
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
-  private _connection: rabbit.ChannelModel;
-  private _channel: rabbit.Channel;
+  private _connection: rabbit.ChannelModel | null = null;
+  private _channel: rabbit.Channel | null = null;
 
   private readonly logger = new Logger(RabbitMQService.name);
   private readonly RECONNECT_INTERVAL_NAME = 'RECONNECT_INTERVAL_NAME';
@@ -90,11 +90,13 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   async setupQueue(queueName: string, ttl?: number): Promise<boolean> {
+    const channel = this.channel;
+
     try {
       const dlqName = this.getDLQName(queueName);
 
       // Create DLQ for our queue
-      await this._channel.assertQueue(dlqName, {
+      await channel.assertQueue(dlqName, {
         durable: true,
         arguments: {
           'x-queue-type': 'quorum',
@@ -103,7 +105,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       });
 
       // Create and setup our queue
-      await this._channel.assertQueue(queueName, {
+      await channel.assertQueue(queueName, {
         durable: true,
         arguments: {
           'x-queue-type': 'quorum',
@@ -128,14 +130,16 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   async deleteQueue(queueName: string): Promise<boolean> {
+    const channel = this.channel;
+
     try {
       const dlqName = this.getDLQName(queueName);
 
       // Delete DLQ for our queue
-      await this._channel.deleteQueue(dlqName);
+      await channel.deleteQueue(dlqName);
 
       // Delete our queue
-      await this._channel.deleteQueue(queueName);
+      await channel.deleteQueue(queueName);
 
       this.logger.log(`Queue ${queueName} and DLQ ${dlqName} deleted.`);
 
@@ -151,8 +155,10 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
   // Do not use, may break the connection.
   async checkQueue(queueName: string): Promise<boolean> {
+    const channel = this.channel;
+
     try {
-      await this._channel.checkQueue(queueName);
+      await channel.checkQueue(queueName);
 
       return true;
     } catch {
@@ -161,6 +167,8 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   async subscribe(queueName: string): Promise<boolean> {
+    const channel = this.channel;
+
     try {
       const queueExists = await this.checkQueue(queueName);
 
@@ -170,11 +178,11 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
         return false;
       }
 
-      const consume = await this._channel.consume(
+      const consume = await channel.consume(
         queueName,
-        (message: ConsumeMessage): void => {
+        (message: ConsumeMessage | null): void => {
           try {
-            const messageContent = message.content.toString();
+            const messageContent = message ? message.content.toString() : null;
 
             this.logger.debug(`Processing message from queue ${queueName}:`, messageContent);
           } catch (error) {
@@ -197,6 +205,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   async unsubscribe(queueName: string): Promise<boolean> {
+    const channel = this.channel;
     const consumeTagKey = this.getConsumeTagKey(queueName);
 
     try {
@@ -207,7 +216,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
         return false;
       }
 
-      await this._channel.cancel(consumerTag);
+      await channel.cancel(consumerTag);
       await this.cacheManager.del(consumeTagKey);
 
       this.logger.log(`Unsubscribed from queue ${queueName}`);
@@ -229,10 +238,18 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   get connection(): rabbit.ChannelModel {
+    if (!this._connection) {
+      throw new Error('Rabbit does not connected');
+    }
+
     return this._connection;
   }
 
   get channel(): rabbit.Channel {
+    if (!this._channel) {
+      throw new Error('Rabbit channel not defined');
+    }
+
     return this._channel;
   }
 }
