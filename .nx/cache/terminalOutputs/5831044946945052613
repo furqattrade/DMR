@@ -1,4 +1,0 @@
-[31m[Nest] 19780  - [39m12/06/2025, 6:02:25 pm [31m  ERROR[39m [38;5;3m[WebsocketService] [39m[31mDMR_SERVER_WEBSOCKET_URL is not configured[39m
-[32m[Nest] 19780  - [39m12/06/2025, 6:02:25 pm [32m    LOG[39m [38;5;3m[WebsocketService] [39m[32mManually disconnected from DMR server[39m
-[31m[Nest] 33928  - [39m12/06/2025, 6:02:25 pm [31m  ERROR[39m [38;5;3m[CentOpsService] [39m[31mValidation failed for client configuration: [{"target":{"id":null,"name":"Org1","authenticationCertificate":"cert","createdAt":"2024-01-01T00:00:00Z","updatedAt":"2024-01-01T00:00:00Z"},"value":null,"property":"id","children":[],"constraints":{"isNotEmpty":"id should not be empty","isUuid":"id must be a UUID"}}][39m
-[31m[Nest] 33928  - [39m12/06/2025, 6:02:25 pm [31m  ERROR[39m [38;5;3m[CentOpsService] [39m[31mError while get response from http://test-url: Network error[39m
