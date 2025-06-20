@@ -1,4 +1,4 @@
-import { AgentMessageDto, CentOpsEvent } from '@dmr/shared';
+import { AgentMessageDto, DmrServerEvent } from '@dmr/shared';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -234,7 +234,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     try {
       const messageContent = message.content.toString();
       const parsedMessage = JSON.parse(messageContent) as AgentMessageDto;
-      this.eventEmitter.emit(CentOpsEvent.FORWARD_MESSAGE_TO_AGENT, {
+      this.eventEmitter.emit(DmrServerEvent.FORWARD_MESSAGE_TO_AGENT, {
         agentId,
         message: parsedMessage,
       });

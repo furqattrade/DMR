@@ -1,4 +1,4 @@
-import { AgentEncryptedMessageDto, AgentEventNames, CentOpsEvent } from '@dmr/shared';
+import { AgentEncryptedMessageDto, AgentEventNames, DmrServerEvent } from '@dmr/shared';
 import { BadRequestException, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import {
@@ -71,41 +71,38 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Agent disconnected: ${agentId} (Socket ID: ${client.id})`);
   }
 
-  @OnEvent(CentOpsEvent.UPDATED)
+  @OnEvent(DmrServerEvent.UPDATED)
   onAgentConfigUpdate(data: CentOpsConfigurationDifference): void {
     this.server.emit(AgentEventNames.PARTIAL_AGENT_LIST, [...data.added, ...data.deleted]);
 
     this.logger.log('Agent configurations updated and emitted to all connected clients');
   }
 
-  @OnEvent(CentOpsEvent.FORWARD_MESSAGE_TO_AGENT)
+  @OnEvent(DmrServerEvent.FORWARD_MESSAGE_TO_AGENT)
   onRabbitMQMessage(payload: { agentId: string; message: AgentEncryptedMessageDto }): void {
     try {
       const { agentId, message } = payload;
-      const sockets = this.findSocketsByAgentId(agentId);
-      if (sockets.length === 0) {
-        this.logger.warn(`No connected sockets found for agent ${agentId}`);
+      const socket = this.findSocketByAgentId(agentId);
+      if (!socket) {
+        this.logger.warn(`No connected socket found for agent ${agentId}`);
         return;
       }
-      for (const socket of sockets) {
-        socket.emit(AgentEventNames.MESSAGE_FROM_DMR_SERVER, message);
-      }
-      this.logger.log(`Message forwarded to ${sockets.length} socket(s) for agent ${agentId}`);
+      socket.emit(AgentEventNames.MESSAGE_FROM_DMR_SERVER, message);
+      this.logger.log(`Message forwarded to agent ${agentId} (Socket ID: ${socket.id})`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(`Error forwarding RabbitMQ message to agent: ${errorMessage}`);
     }
   }
 
-  private findSocketsByAgentId(agentId: string): Socket[] {
-    const sockets: Socket[] = [];
+  private findSocketByAgentId(agentId: string): Socket | null {
     const connectedSockets = this.server.sockets.sockets;
-    connectedSockets.forEach((socket: Socket) => {
+    for (const [, socket] of connectedSockets.entries()) {
       if (socket.agent?.sub === agentId) {
-        sockets.push(socket);
+        return socket;
       }
-    });
-    return sockets;
+    }
+    return null;
   }
 
   @SubscribeMessage(AgentEventNames.MESSAGE_TO_DMR_SERVER)

@@ -3,6 +3,9 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ConsumeMessage } from 'amqplib';
+import { DmrServerEvent } from '@dmr/shared';
+import { Logger } from '@nestjs/common';
 
 import { rabbitMQConfig } from '../../common/config';
 import { RabbitMQService } from './rabbitmq.service';
@@ -298,5 +301,116 @@ describe('RabbitMQService', () => {
 
     expect(removeAllListenersConnectionMock).toHaveBeenCalled();
     expect(closeConnectionMock).toHaveBeenCalled();
+  });
+
+  describe('Message Forwarding', () => {
+    describe('forwardMessageToAgent', () => {
+      it('should parse message content and emit event', () => {
+        const agentId = 'test-agent-id';
+        const mockMessage = {
+          content: Buffer.from(
+            JSON.stringify({
+              id: 'test-message-id',
+              senderId: 'test-sender-id',
+              recipientId: agentId,
+              timestamp: '2025-06-18T14:00:00Z',
+              payload: '{"key":"value"}',
+            }),
+          ),
+        } as ConsumeMessage;
+
+        (service as any).forwardMessageToAgent(agentId, mockMessage);
+
+        expect(eventEmitter.emit).toHaveBeenCalledWith(DmrServerEvent.FORWARD_MESSAGE_TO_AGENT, {
+          agentId,
+          message: expect.objectContaining({
+            id: 'test-message-id',
+            senderId: 'test-sender-id',
+          }),
+        });
+      });
+
+      it('should handle JSON parsing errors', () => {
+        const agentId = 'test-agent-id';
+        const mockMessage = {
+          content: Buffer.from('invalid-json'),
+        } as ConsumeMessage;
+
+        const loggerSpy = vi.spyOn(Logger.prototype, 'error');
+
+        (service as any).forwardMessageToAgent(agentId, mockMessage);
+
+        expect(loggerSpy).toHaveBeenCalledWith(
+          expect.stringContaining(`Error forwarding message to agent ${agentId}`),
+        );
+      });
+    });
+
+    describe('subscribe method with message processing', () => {
+      it('should process messages and acknowledge them', async () => {
+        const queueName = 'test-queue';
+        const mockMessage = {
+          content: Buffer.from(
+            JSON.stringify({
+              id: 'test-message-id',
+              senderId: 'test-sender-id',
+            }),
+          ),
+        } as ConsumeMessage;
+
+        let capturedCallback: (msg: ConsumeMessage) => void;
+        (service as any)._channel.consume = vi.fn((queue, callback) => {
+          capturedCallback = callback;
+          return Promise.resolve({ consumerTag: 'test-tag' });
+        });
+
+        vi.spyOn(service, 'checkQueue').mockResolvedValue(true);
+
+        const forwardSpy = vi.spyOn(service as any, 'forwardMessageToAgent');
+        (service as any)._channel.ack = vi.fn();
+
+        await service.subscribe(queueName);
+
+        expect((service as any)._channel.consume).toHaveBeenCalledWith(
+          queueName,
+          expect.any(Function),
+          { noAck: false },
+        );
+
+        capturedCallback(mockMessage);
+
+        expect(forwardSpy).toHaveBeenCalledWith(queueName, mockMessage);
+        expect((service as any)._channel.ack).toHaveBeenCalledWith(mockMessage);
+      });
+
+      it('should handle errors and nack messages when processing fails', async () => {
+        const queueName = 'test-queue';
+        const mockMessage = {
+          content: Buffer.from('invalid-json'),
+        } as ConsumeMessage;
+
+        let capturedCallback: (msg: ConsumeMessage) => void;
+        (service as any)._channel.consume = vi.fn((queue, callback) => {
+          capturedCallback = callback;
+          return Promise.resolve({ consumerTag: 'test-tag' });
+        });
+
+        vi.spyOn(service, 'checkQueue').mockResolvedValue(true);
+
+        vi.spyOn(service as any, 'forwardMessageToAgent').mockImplementation(() => {
+          throw new Error('Test error');
+        });
+
+        (service as any)._channel.nack = vi.fn();
+        (service as any)._channel.ack = vi.fn();
+
+        await service.subscribe(queueName);
+
+        capturedCallback(mockMessage);
+
+        expect((service as any)._channel.ack).not.toHaveBeenCalled();
+        expect((service as any)._channel.nack).toHaveBeenCalledWith(mockMessage, false, false);
+      });
+    });
   });
 });
