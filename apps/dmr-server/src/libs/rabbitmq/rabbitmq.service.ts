@@ -1,6 +1,9 @@
-import { IRabbitQueue } from '@dmr/shared';
+import { AgentMessageDto, DmrServerEvent, IRabbitQueue } from '@dmr/shared';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { HttpService } from '@nestjs/axios';
+import { SchedulerRegistry } from '@nestjs/schedule';
 import * as rabbit from 'amqplib';
 import { ConsumeMessage } from 'amqplib';
 import { firstValueFrom } from 'rxjs';
@@ -20,6 +23,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly schedulerRegistry: SchedulerRegistry,
     private readonly httpService: HttpService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async onModuleInit(): Promise<void> {

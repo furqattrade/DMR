@@ -6,7 +6,6 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConsumeMessage } from 'amqplib';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { rabbitMQConfig } from '../../common/config';
 import { RabbitMQService } from './rabbitmq.service';
 
@@ -103,6 +102,12 @@ describe('RabbitMQService', () => {
             get: vi.fn(),
             set: vi.fn(),
             del: vi.fn(),
+          },
+        },
+        {
+          provide: EventEmitter2,
+          useValue: {
+            emit: vi.fn(),
           },
         },
         {
