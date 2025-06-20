@@ -131,7 +131,8 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
   async setupQueueWithoutDLQ(queueName: string, ttl?: number): Promise<boolean> {
     try {
-      await this._channel.assertQueue(queueName, {
+      const channel = this.channel;
+      await channel.assertQueue(queueName, {
         durable: true,
         arguments: {
           'x-queue-type': 'quorum',
