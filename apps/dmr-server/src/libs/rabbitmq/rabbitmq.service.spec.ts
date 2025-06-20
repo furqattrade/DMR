@@ -1,11 +1,11 @@
+import { DmrServerEvent } from '@dmr/shared';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConsumeMessage } from 'amqplib';
-import { DmrServerEvent } from '@dmr/shared';
-import { Logger } from '@nestjs/common';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { rabbitMQConfig } from '../../common/config';
 import { RabbitMQService } from './rabbitmq.service';
@@ -54,7 +54,9 @@ vi.mock('amqplib', async () => {
   };
 });
 
+import { HttpService } from '@nestjs/axios';
 import * as amqplib from 'amqplib';
+import { of, throwError } from 'rxjs';
 const {
   assertQueueMock,
   deleteQueueMock,
@@ -66,6 +68,7 @@ const {
 } = (amqplib as any).__mocks;
 
 describe('RabbitMQService', () => {
+  let httpService: HttpService;
   let service: RabbitMQService;
   let schedulerRegistry: SchedulerRegistry;
   let cacheManager: Cache;
@@ -87,6 +90,7 @@ describe('RabbitMQService', () => {
             ttl: 60000,
             dlqTTL: 60000,
             reconnectInterval: 5000,
+            managementUIUri: 'http://localhost:15672',
           },
         },
         {
@@ -102,17 +106,16 @@ describe('RabbitMQService', () => {
           },
         },
         {
-          provide: EventEmitter2,
-          useValue: {
-            emit: vi.fn(),
-          },
+          provide: HttpService,
+          useValue: { get: vi.fn() },
         },
       ],
     }).compile();
 
+    cacheManager = module.get(CACHE_MANAGER);
+    httpService = module.get<HttpService>(HttpService);
     service = module.get<RabbitMQService>(RabbitMQService);
     schedulerRegistry = module.get<SchedulerRegistry>(SchedulerRegistry);
-    cacheManager = module.get(CACHE_MANAGER);
     eventEmitter = module.get<EventEmitter2>(EventEmitter2);
 
     await service.onModuleInit();
@@ -157,22 +160,36 @@ describe('RabbitMQService', () => {
   });
 
   it('should return true if queue exists', async () => {
-    checkQueueMock.mockResolvedValueOnce(true);
+    const mockData = {
+      arguments: {},
+      auto_delete: false,
+      durable: true,
+      exclusive: false,
+      leader: 'rabbit',
+      members: ['rabbit'],
+      name: 'test-queue',
+      node: 'rabbit',
+      online: ['rabbit'],
+      state: 'running',
+      type: 'quorum',
+      vhost: '/',
+    };
+
+    vi.spyOn(httpService, 'get').mockReturnValue(of({ data: mockData } as any));
     const result = await service.checkQueue('test-queue');
 
     expect(result).toBe(true);
-    expect(checkQueueMock).toHaveBeenCalledWith('test-queue');
   });
 
   it('should return false if queue does not exist', async () => {
-    checkQueueMock.mockRejectedValueOnce(new Error('Not Found'));
+    vi.spyOn(httpService, 'get').mockReturnValue(throwError(() => new Error('Not found')));
     const result = await service.checkQueue('test-queue');
 
     expect(result).toBe(false);
-    expect(checkQueueMock).toHaveBeenCalledWith('test-queue');
   });
 
   it('should setup queue and DLQ', async () => {
+    vi.spyOn(httpService, 'get').mockReturnValue(throwError(() => new Error('Not found')));
     const result = await service.setupQueue('test-queue', 1000);
 
     expect(result).toBe(true);

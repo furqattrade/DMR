@@ -1,10 +1,9 @@
-import { AgentMessageDto, DmrServerEvent } from '@dmr/shared';
+import { IRabbitQueue } from '@dmr/shared';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { SchedulerRegistry } from '@nestjs/schedule';
 import * as rabbit from 'amqplib';
 import { ConsumeMessage } from 'amqplib';
+import { firstValueFrom } from 'rxjs';
 import { rabbitMQConfig, RabbitMQConfig } from '../../common/config';
 
 @Injectable()
@@ -18,9 +17,9 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(rabbitMQConfig.KEY)
     private readonly rabbitMQConfig: RabbitMQConfig,
-    private readonly schedulerRegistry: SchedulerRegistry,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly schedulerRegistry: SchedulerRegistry,
+    private readonly httpService: HttpService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -98,6 +97,12 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     try {
       const dlqName = this.getDLQName(queueName);
 
+      const alreadyExist = await this.checkQueue(queueName);
+
+      if (alreadyExist) {
+        return true;
+      }
+
       // Create DLQ for our queue
       await channel.assertQueue(dlqName, {
         durable: true,
@@ -133,8 +138,10 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   async setupQueueWithoutDLQ(queueName: string, ttl?: number): Promise<boolean> {
+    const channel = this.channel;
+
     try {
-      await this._channel.assertQueue(queueName, {
+      await channel.assertQueue(queueName, {
         durable: true,
         arguments: {
           'x-queue-type': 'quorum',
@@ -181,11 +188,22 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   async checkQueue(queueName: string): Promise<boolean> {
-    const channel = this.channel;
-
     try {
-      await channel.checkQueue(queueName);
+      const base64 = Buffer.from(
+        `${this.rabbitMQConfig.username}:${this.rabbitMQConfig.password}`,
+      ).toString('base64');
+      const authorization = `Basic ${base64}`;
 
+      const encodedVhost = encodeURIComponent('/');
+      const getQueueURL = `${this.rabbitMQConfig.managementUIUri}/api/queues/${encodedVhost}/${queueName}`;
+
+      const { data: queue } = await firstValueFrom(
+        this.httpService.get<IRabbitQueue>(getQueueURL, {
+          headers: { Authorization: authorization },
+        }),
+      );
+
+      this.logger.log(`Queues in vhost "/":`, queue.name);
       return true;
     } catch {
       return false;
