@@ -2,7 +2,7 @@ FROM node:22.16.0-alpine
 
 WORKDIR /app
 
-RUN npm install -g pnpm@10.12.1
+RUN corepack enable pnpm
 
 COPY package.json pnpm-lock.yaml ./
 COPY nx.json tsconfig.base.json ./

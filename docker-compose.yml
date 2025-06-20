@@ -55,11 +55,11 @@ services:
     networks:
       - bykstack
 
-  dmr-agent-1:
+  dmr-agent-a:
     build:
       context: .
       dockerfile: apps/dmr-agent/Dockerfile
-    container_name: dmr-agent-1
+    container_name: dmr-agent-a
     restart: always
     ports:
       - '8073:5001' # Agent 1 port
@@ -76,11 +76,11 @@ services:
     networks:
       - bykstack
 
-  dmr-agent-2:
+  dmr-agent-b:
     build:
       context: .
       dockerfile: apps/dmr-agent/Dockerfile
-    container_name: dmr-agent-2
+    container_name: dmr-agent-b
     restart: always
     ports:
       - '8074:5001' # Agent 2 port
