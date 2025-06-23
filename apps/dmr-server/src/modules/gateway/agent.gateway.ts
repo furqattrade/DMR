@@ -51,16 +51,27 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const jwtPayload = await this.authService.verifyToken(token);
 
+      Object.assign(client, { agent: jwtPayload });
+
+      const existingSocket = this.findSocketByAgentId(jwtPayload.sub);
+      if (existingSocket && existingSocket.id !== client.id) {
+        this.logger.log(
+          `Dropping existing connection for agent ${jwtPayload.sub} (Socket ID: ${existingSocket.id}) in favor of new connection (Socket ID: ${client.id})`,
+        );
+        existingSocket.disconnect();
+
+        await this.rabbitService.unsubscribe(jwtPayload.sub);
+      }
+
       const consume = await this.rabbitService.subscribe(jwtPayload.sub);
 
       if (!consume) {
         client.disconnect();
+        return;
       }
 
       const centOpsConfigurations = await this.centOpsService.getCentOpsConfigurations();
       this.server.emit(AgentEventNames.FULL_AGENT_LIST, centOpsConfigurations);
-
-      Object.assign(client, { agent: jwtPayload });
     } catch {
       this.logger.error(`Error during agent socket connection: ${client.id}`, 'AgentGateway');
       client.disconnect();
