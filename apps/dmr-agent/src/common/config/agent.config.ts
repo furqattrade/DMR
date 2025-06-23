@@ -8,10 +8,12 @@ const variables = Utils.validateObject(
   {
     id: String(process.env.AGENT_ID),
     privateKey: String(process.env.AGENT_PRIVATE_KEY),
+    webhookEndpoint: String(process.env.AGENT_WEBHOOK_ENDPOINT || ''),
   },
   {
     id: Joi.string().uuid().required(),
     privateKey: Joi.string().required(),
+    webhookEndpoint: Joi.string().allow(''),
   },
 );
 

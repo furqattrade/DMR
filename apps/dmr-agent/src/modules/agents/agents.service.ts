@@ -12,8 +12,10 @@ import {
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
+import { HttpService } from '@nestjs/axios';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { firstValueFrom } from 'rxjs';
 import { AgentConfig, agentConfig } from '../../common/config';
 import { WebsocketService } from '../websocket/websocket.service';
 
@@ -26,6 +28,7 @@ export class AgentsService implements OnModuleInit {
     @Inject(agentConfig.KEY) private readonly agentConfig: AgentConfig,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly websocketService: WebsocketService,
+    private readonly httpService: HttpService,
   ) {}
 
   onModuleInit(): void {
@@ -136,9 +139,42 @@ export class AgentsService implements OnModuleInit {
       }
 
       this.logger.log('Message is decrypted');
+
+      if (this.agentConfig.webhookEndpoint) {
+        try {
+          const externalServiceMessage: ExternalServiceMessageDto = {
+            id: decryptedMessage.id,
+            recipientId: decryptedMessage.recipientId,
+            payload: decryptedMessage.payload,
+          };
+
+          await this.sendMessageToWebhook(externalServiceMessage);
+          this.logger.log(
+            `Message forwarded to webhook endpoint: ${this.agentConfig.webhookEndpoint}`,
+          );
+        } catch (webhookError) {
+          const errorMessage =
+            webhookError instanceof Error ? webhookError.message : JSON.stringify(webhookError);
+          this.logger.error(`Failed to forward message to webhook: ${errorMessage}`);
+        }
+      } else {
+        this.logger.debug('No webhook endpoint configured, skipping message forwarding');
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(`Error handling message from DMR Server: ${errorMessage}`);
+    }
+  }
+
+  private async sendMessageToWebhook(message: ExternalServiceMessageDto): Promise<void> {
+    if (!this.agentConfig.webhookEndpoint) {
+      throw new Error('Webhook endpoint not configured');
+    }
+    try {
+      await firstValueFrom(this.httpService.post(this.agentConfig.webhookEndpoint, message));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      throw new Error(`Failed to send message to webhook: ${errorMessage}`);
     }
   }
 

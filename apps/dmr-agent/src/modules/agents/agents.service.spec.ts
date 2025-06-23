@@ -1,8 +1,10 @@
 import { IAgent, IAgentList, MessageType, Utils } from '@dmr/shared';
+import { HttpService } from '@nestjs/axios';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as classTransformer from 'class-transformer';
 import * as classValidator from 'class-validator';
+import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { agentConfig, AgentConfig } from '../../common/config';
 import { WebsocketService } from '../websocket/websocket.service';
@@ -13,6 +15,7 @@ describe('AgentsService', () => {
   let websocketService: WebsocketService;
   let cacheManager: Cache;
   let agentConfigMock: AgentConfig;
+  let httpService: HttpService;
 
   const agent1: IAgent = {
     id: '1',
@@ -58,6 +61,12 @@ describe('AgentsService', () => {
           provide: WebsocketService,
           useValue: { isConnected: vi.fn(), getSocket: vi.fn() },
         },
+        {
+          provide: HttpService,
+          useValue: {
+            post: vi.fn().mockReturnValue(of({ data: {} })),
+          },
+        },
       ],
     }).compile();
 
@@ -65,6 +74,7 @@ describe('AgentsService', () => {
     websocketService = module.get(WebsocketService);
     cacheManager = module.get(CACHE_MANAGER);
     agentConfigMock = module.get(agentConfig.KEY);
+    httpService = module.get(HttpService);
 
     // Mock transform and validation globally
     vi.spyOn(classTransformer, 'plainToInstance').mockImplementation((_, obj) => obj as any);
