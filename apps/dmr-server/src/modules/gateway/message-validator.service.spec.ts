@@ -5,8 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CentOpsService } from '../centops/centops.service';
 import { MessageValidatorService } from './message-validator.service';
 
-const mockCentOpsService = {
-  getCentOpsConfigurationByClientId: vi.fn().mockImplementation(async (id: string) => {
+// Create a mock for CentOpsService
+class MockCentOpsService {
+  async getCentOpsConfigurationByClientId(id: string) {
     if (
       [
         'agent-1',
@@ -21,14 +22,33 @@ const mockCentOpsService = {
       return { id, name: 'Test Agent' };
     }
     throw new BadRequestException(`Agent with ID ${id} not found`);
-  }),
-};
+  }
+}
 
 describe('MessageValidatorService', () => {
   let service: MessageValidatorService;
   let centOpsService: CentOpsService;
 
   beforeEach(async () => {
+    const mockCentOpsService = {
+      getCentOpsConfigurationByClientId: vi.fn().mockImplementation(async (id: string) => {
+        if (
+          [
+            'agent-1',
+            'agent-2',
+            'complex-sender',
+            'complex-recipient',
+            '123e4567-e89b-12d3-a456-426614174000',
+            '123e4567-e89b-12d3-a456-426614174001',
+            '123e4567-e89b-12d3-a456-426614174002',
+          ].includes(id)
+        ) {
+          return { id, name: 'Test Agent' };
+        }
+        throw new BadRequestException(`Agent with ID ${id} not found`);
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MessageValidatorService,
