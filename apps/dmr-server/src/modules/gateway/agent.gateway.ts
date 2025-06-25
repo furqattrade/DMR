@@ -25,6 +25,7 @@ import { CentOpsConfigurationDifference } from '../centops/interfaces/cent-ops-c
 import { MessageValidatorService } from './message-validator.service';
 
 @WebSocketGateway({
+  namespace: '/v1/dmr-agent-events',
   connectionStateRecovery: {
     maxDisconnectionDuration: Number(process.env.WEB_SOCKET_MAX_DISCONNECTION_DURATION || '120000'),
     skipMiddlewares: true,
