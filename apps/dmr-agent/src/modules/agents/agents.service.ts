@@ -3,19 +3,22 @@ import {
   AgentDto,
   AgentEncryptedMessageDto,
   AgentEventNames,
+  AgentMessageDto,
   ExternalServiceMessageDto,
   IAgent,
   IAgentList,
   MessageType,
+  SimpleValidationFailureMessage,
   Utils,
+  ValidationErrorDto,
+  ValidationErrorType,
 } from '@dmr/shared';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
 import { HttpService } from '@nestjs/axios';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
+import { BadRequestException, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { AgentConfig, agentConfig } from '../../common/config';
 import { WebsocketService } from '../websocket/websocket.service';
 
@@ -60,7 +63,7 @@ export class AgentsService implements OnModuleInit {
       void this.handlePartialAgentListEvent(data);
     });
 
-    socket.on(AgentEventNames.MESSAGE_FROM_DMR_SERVER, (data: AgentEncryptedMessageDto) => {
+    socket.on(AgentEventNames.MESSAGE_FROM_DMR_SERVER, (data: AgentMessageDto) => {
       void this.handleMessageFromDMRServerEvent(data);
     });
   }
@@ -129,40 +132,44 @@ export class AgentsService implements OnModuleInit {
     }
   }
 
-  private async handleMessageFromDMRServerEvent(message: AgentEncryptedMessageDto): Promise<void> {
+  private async handleMessageFromDMRServerEvent(message: AgentMessageDto): Promise<void> {
+    const errors: ValidationErrorDto[] = [];
+
     try {
       const decryptedMessage = await this.decryptMessagePayloadFromDMRServer(message);
 
       if (!decryptedMessage) {
         this.logger.error(`Something went wrong while decrypting the message`);
-        return;
-      }
-
-      this.logger.log('Message is decrypted');
-
-      if (this.agentConfig.webhookEndpoint) {
-        try {
-          const externalServiceMessage: ExternalServiceMessageDto = {
-            id: decryptedMessage.id,
-            recipientId: decryptedMessage.recipientId,
-            payload: decryptedMessage.payload,
-          };
-
-          await this.sendMessageToWebhook(externalServiceMessage);
-          this.logger.log(
-            `Message forwarded to webhook endpoint: ${this.agentConfig.webhookEndpoint}`,
-          );
-        } catch (webhookError) {
-          const errorMessage =
-            webhookError instanceof Error ? webhookError.message : JSON.stringify(webhookError);
-          this.logger.error(`Failed to forward message to webhook: ${errorMessage}`);
-        }
+        errors.push({
+          type: ValidationErrorType.DECRYPTION_FAILED,
+          message: 'Something went wrong while decrypting the message.',
+        });
       } else {
-        this.logger.debug('No webhook endpoint configured, skipping message forwarding');
+        this.logger.log('Message is decrypted');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(`Error handling message from DMR Server: ${errorMessage}`);
+
+      errors.push({
+        type: ValidationErrorType.SIGNATURE_VALIDATION_FAILED,
+        message: errorMessage,
+      });
+    }
+
+    if (errors.length !== 0) {
+      const error: SimpleValidationFailureMessage = {
+        id: message.id,
+        errors: errors,
+        message: message,
+        receivedAt: message.receivedAt || new Date().toISOString(),
+      };
+
+      this.websocketService.getSocket()?.emit(AgentEventNames.MESSAGE_PROCESSING_FAILED, error);
+
+      this.logger.warn(
+        `Emitted ${AgentEventNames.MESSAGE_PROCESSING_FAILED} event for message ${message.id} with errors: ${JSON.stringify(errors)}`,
+      );
     }
   }
 
@@ -253,8 +260,9 @@ export class AgentsService implements OnModuleInit {
       return decryptedMessage;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+
       this.logger.error(`Error decrypting message: ${errorMessage}`);
-      return null;
+      throw new BadRequestException(errorMessage);
     }
   }
 }
