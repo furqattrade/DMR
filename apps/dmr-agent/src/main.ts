@@ -7,11 +7,11 @@ import { AppModule } from './app.module';
 import { APP_CONFIG_TOKEN, AppConfig, GlobalConfig } from './common/config';
 
 async function bootstrap(): Promise<void> {
-  const logger = new ConsoleLogger('DMR-Agent', {
+  const logger = new ConsoleLogger({
     logLevels: (process.env.LOGGER_LOG_LEVELS?.split(',') as LogLevel[]) || [
       'error',
       'warn',
-      'log' as LogLevel,
+      'log',
     ],
     timestamp: true,
     colors: process.env.LOGGER_COLORS === 'true',
@@ -33,8 +33,6 @@ async function bootstrap(): Promise<void> {
   if (appConfig.environment === 'development') {
     logger.log(`Listening on ${await app.getUrl()}`);
   }
-
-  logger.log(`🚀 Application is running on: http://localhost:${appConfig.port}`);
 }
 
 void bootstrap();

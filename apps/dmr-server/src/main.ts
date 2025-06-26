@@ -9,11 +9,11 @@ import { APP_CONFIG_TOKEN, AppConfig, GlobalConfig } from './common/config';
 import { handlers } from './mocks/handlers/centops.response';
 
 async function bootstrap(): Promise<void> {
-  const logger = new ConsoleLogger('DMR-Server', {
+  const logger = new ConsoleLogger({
     logLevels: (process.env.LOGGER_LOG_LEVELS?.split(',') as LogLevel[]) || [
       'error',
       'warn',
-      'log' as LogLevel,
+      'log',
     ],
     timestamp: true,
     colors: process.env.LOGGER_COLORS === 'true',
@@ -39,8 +39,6 @@ async function bootstrap(): Promise<void> {
     const server = setupServer(...handlers);
     server.listen();
   }
-
-  logger.log(`🚀 Application is running on: http://localhost:${appConfig.port}`);
 }
 
 void bootstrap();

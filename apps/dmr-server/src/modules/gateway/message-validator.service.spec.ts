@@ -8,8 +8,8 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
 import { useContainer } from 'class-validator';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { centOpsConfig } from '../../common/config';
-import { RabbitMQService } from '../../libs/rabbitmq';
+import { centOpsConfig } from '../../common/config/cent-ops.config';
+import { RabbitMQService } from '../../libs/rabbitmq/rabbitmq.service';
 import { CentOpsService } from '../centops/centops.service';
 import { MessageValidatorService } from './message-validator.service';
 
@@ -46,6 +46,7 @@ describe('MessageValidatorService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        MessageValidatorService,
         {
           provide: CentOpsService,
           useValue: mockCentOpsService,
@@ -90,7 +91,6 @@ describe('MessageValidatorService', () => {
               forbidNonWhitelisted: false,
             }),
         },
-        MessageValidatorService,
       ],
     }).compile();
 
