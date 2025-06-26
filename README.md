@@ -69,6 +69,41 @@ graph TD
 - Supports RabbitMQ clustering for scalability.
 - https://www.rabbitmq.com/kubernetes/operator/operator-monitoring
 
+## Docker and Docker Compose
+
+The DMR system can be easily deployed using Docker and Docker Compose. The repository includes Docker configurations for all components.
+
+### Docker Files
+
+- DMR Server Dockerfile: [`apps/dmr-server/Dockerfile`](apps/dmr-server/Dockerfile)
+- DMR Agent Dockerfile: [`apps/dmr-agent/Dockerfile`](apps/dmr-agent/Dockerfile)
+
+### Docker Compose
+
+The main Docker Compose file is located at the root of the repository: [`docker-compose.yml`](docker-compose.yml)
+
+For development purposes, there is also a simplified docker-compose file in the dmr-server directory: [`apps/dmr-server/docker-compose.yml`](apps/dmr-server/docker-compose.yml) which only sets up RabbitMQ for local development.
+
+### Running with Docker Compose
+
+To start all services using Docker Compose, run the following command from the root directory of the project:
+
+```bash
+docker-compose up -d
+```
+
+This will build and start all containers in detached mode. You can view the logs with:
+
+```bash
+docker-compose logs -f
+```
+
+To stop all services:
+
+```bash
+docker-compose down
+```
+
 ## Prometheus
 
 ### DMR server
