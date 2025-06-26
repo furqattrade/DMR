@@ -21,6 +21,7 @@ import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { AgentConfig, agentConfig } from '../../common/config';
 import { WebsocketService } from '../websocket/websocket.service';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class AgentsService implements OnModuleInit {

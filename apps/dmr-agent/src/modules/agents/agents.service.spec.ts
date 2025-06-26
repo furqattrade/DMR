@@ -165,6 +165,7 @@ describe('AgentsService', () => {
       vi.spyOn(Utils, 'encryptPayload').mockResolvedValueOnce(encryptedPayload);
 
       const message = {
+        id: 'test-message-id',
         payload: ['some-data'],
         recipientId: mockRecipient.id,
       };
@@ -187,6 +188,7 @@ describe('AgentsService', () => {
       vi.spyOn(service as any, 'getAgentById').mockResolvedValueOnce(null);
 
       const result = await service.encryptMessagePayloadFromExternalService({
+        id: 'test-message-id',
         payload: ['data'],
         recipientId: 'invalid',
       });
@@ -204,6 +206,7 @@ describe('AgentsService', () => {
       vi.spyOn(Utils, 'encryptPayload').mockRejectedValueOnce(new Error('Test Error'));
 
       const result = await service.encryptMessagePayloadFromExternalService({
+        id: 'test-message-id',
         payload: ['data'],
         recipientId: 'recipient-id',
       });
