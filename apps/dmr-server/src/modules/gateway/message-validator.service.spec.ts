@@ -94,7 +94,6 @@ describe('MessageValidatorService', () => {
       ],
     }).compile();
 
-    // Set up class-validator to use NestJS DI container
     useContainer(module, { fallbackOnErrors: true });
 
     service = module.get<MessageValidatorService>(MessageValidatorService);
