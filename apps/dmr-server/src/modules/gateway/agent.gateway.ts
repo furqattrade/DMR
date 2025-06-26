@@ -47,6 +47,7 @@ export class AgentGateway
 
   private readonly logger = new Logger(AgentGateway.name);
   private handleConnectionEvent: (socket: Socket) => void = () => null;
+  private originalEmit: Server['emit'];
 
   constructor(
     private readonly authService: AuthService,
@@ -81,17 +82,19 @@ export class AgentGateway
 
     this.server.on('connection', this.handleConnectionEvent);
 
-    const emit = (event: string, ...arguments_: unknown[]) => {
+    this.originalEmit = this.server.emit;
+
+    this.server.emit = (event: string, ...args: unknown[]) => {
       this.metricService.eventsSentTotalCounter.inc({ event, namespace: '/' });
-
-      return this.server.emit(event, ...arguments_);
+      return this.originalEmit.apply(this.server, [event, ...args]);
     };
-
-    this.server.emit = emit;
   }
 
   onModuleDestroy() {
     this.server.off('connection', this.handleConnectionEvent);
+    if (this.originalEmit) {
+      this.server.emit = this.originalEmit;
+    }
   }
 
   async handleConnection(@ConnectedSocket() client: Socket): Promise<void> {

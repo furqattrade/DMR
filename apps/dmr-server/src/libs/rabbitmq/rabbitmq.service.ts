@@ -1,4 +1,5 @@
 import { AgentMessageDto, IRabbitQueue } from '@dmr/shared';
+import { HttpService } from '@nestjs/axios';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   forwardRef,
@@ -8,7 +9,6 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import * as rabbit from 'amqplib';
 import { ConsumeMessage } from 'amqplib';
@@ -324,6 +324,8 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
   get channel(): rabbit.Channel {
     if (!this._channel) {
+      this.logger.warn('Rabbit channel not defined, attempting to reconnect...');
+      this.scheduleReconnect();
       throw new Error('Rabbit channel not defined');
     }
 
