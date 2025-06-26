@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Server, Socket } from 'socket.io';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MetricService } from '../../libs/metrics';
 import { RabbitMQService } from '../../libs/rabbitmq';
 import { RabbitMQMessageService } from '../../libs/rabbitmq/rabbitmq-message.service';
 import { AuthService } from '../auth/auth.service';
@@ -16,6 +17,20 @@ declare module 'socket.io' {
   }
 }
 
+const mockCounter = {
+  inc: vi.fn(),
+};
+
+const mockGauge = {
+  inc: vi.fn(),
+  dec: vi.fn(),
+};
+
+const mockHistogram = {
+  observe: vi.fn(),
+  startTimer: vi.fn(),
+};
+
 const mockAuthService = {
   verifyToken: vi.fn(),
 };
@@ -23,6 +38,17 @@ const mockAuthService = {
 const mockRabbitMQService = {
   subscribe: vi.fn(),
   unsubscribe: vi.fn(),
+};
+
+const mockMetricService = {
+  errorsTotalCounter: mockCounter,
+  activeConnectionGauge: mockGauge,
+  connectionsTotalCounter: mockCounter,
+  disconnectionsTotalCounter: mockCounter,
+  eventsReceivedTotalCounter: mockCounter,
+  eventsSentTotalCounter: mockCounter,
+  socketConnectionDurationSecondsHistogram: mockHistogram,
+  messageProcessingDurationSecondsHistogram: mockHistogram,
 };
 
 const mockRabbitMQMessageService = {
@@ -44,7 +70,7 @@ describe('AgentGateway', () => {
   let rabbitService: RabbitMQService;
   let centOpsService: CentOpsService;
   let messageValidatorService: MessageValidatorService;
-  let rabbitMQMessageService: any;
+  let rabbitMQMessageService: RabbitMQMessageService;
   let loggerSpy: ReturnType<typeof vi.spyOn>;
   let loggerErrorSpy: ReturnType<typeof vi.spyOn>;
   let serverMock: Server;
@@ -67,6 +93,8 @@ describe('AgentGateway', () => {
       agent: agentPayload || undefined,
       emit: vi.fn(),
       on: vi.fn(),
+      onAny: vi.fn(),
+      onAnyOutgoing: vi.fn(),
       off: vi.fn(),
       once: vi.fn(),
       removeAllListeners: vi.fn(),
@@ -76,13 +104,15 @@ describe('AgentGateway', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [],
       providers: [
         AgentGateway,
         { provide: AuthService, useValue: mockAuthService },
         { provide: RabbitMQService, useValue: mockRabbitMQService },
         { provide: MessageValidatorService, useValue: mockMessageValidatorService },
-        { provide: CentOpsService, useValue: mockCentOpsService },
         { provide: RabbitMQMessageService, useValue: mockRabbitMQMessageService },
+        { provide: MetricService, useValue: mockMetricService },
+        { provide: CentOpsService, useValue: mockCentOpsService },
       ],
     }).compile();
 
@@ -103,6 +133,8 @@ describe('AgentGateway', () => {
         get: vi.fn((id: string) => mockSocketsMap.get(id)),
       },
       emit: vi.fn(),
+      on: vi.fn(),
+      off: vi.fn(),
     } as any as Server;
 
     (serverMock as any).setMockSockets = (socketsArray: [string, Socket][]) => {
@@ -119,8 +151,6 @@ describe('AgentGateway', () => {
   });
 
   afterEach(() => {
-    loggerSpy.mockRestore();
-    loggerErrorSpy.mockRestore();
     vi.restoreAllMocks();
   });
 
@@ -129,7 +159,7 @@ describe('AgentGateway', () => {
   });
 
   describe('handleConnection', () => {
-    const mockPayload = { sub: 'testAgentId', iat: 123, exp: 123 };
+    const mockPayload = { sub: 'testAgentId', iat: 123, exp: 123, cat: 175 };
 
     it('should allow connection and emit full agent list when consume is truthy', async () => {
       const token = 'valid.jwt.token';
@@ -419,13 +449,13 @@ describe('AgentGateway', () => {
     });
   });
 
-  describe('onRabbitMQMessage', () => {
+  describe('forwardMessageToAgent', () => {
     it('should forward message to the correct agent socket', () => {
       // Setup mock sockets
       const mockSocket1 = createMockSocket('token1', { sub: 'agent-123' }, 'socket-1');
       const mockSocket2 = createMockSocket('token2', { sub: 'agent-456' }, 'socket-2');
 
-      // Add sockets to the server's sockets collection using our helper method
+      // Add sockets to the server's sockets collection
       (serverMock as any).setMockSockets([
         ['socket-1', mockSocket1],
         ['socket-2', mockSocket2],
@@ -440,10 +470,7 @@ describe('AgentGateway', () => {
         payload: '{"key":"value"}',
       };
 
-      gateway.onRabbitMQMessage({
-        agentId: 'agent-123',
-        message: testMessage,
-      });
+      gateway.forwardMessageToAgent('agent-123', testMessage);
 
       expect(mockSocket1.emit).toHaveBeenCalledWith(
         AgentEventNames.MESSAGE_FROM_DMR_SERVER,
@@ -468,10 +495,7 @@ describe('AgentGateway', () => {
 
       const warnSpy = vi.spyOn(gateway['logger'], 'warn');
 
-      gateway.onRabbitMQMessage({
-        agentId: 'agent-789',
-        message: testMessage,
-      });
+      gateway.forwardMessageToAgent('agent-789', testMessage);
 
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('No connected socket found for agent agent-789'),
@@ -498,10 +522,7 @@ describe('AgentGateway', () => {
 
       const errorSpy = vi.spyOn(gateway['logger'], 'error');
 
-      gateway.onRabbitMQMessage({
-        agentId: 'agent-123',
-        message: testMessage,
-      });
+      gateway.forwardMessageToAgent('agent-123', testMessage);
 
       expect(errorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Error forwarding RabbitMQ message to agent: Socket error'),
