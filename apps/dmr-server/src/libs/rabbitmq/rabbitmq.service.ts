@@ -326,7 +326,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     if (!this._channel) {
       this.logger.warn('Rabbit channel not defined, attempting to reconnect...');
       this.scheduleReconnect();
-      throw new Error('Rabbit channel not defined');
+      return undefined;
     }
 
     return this._channel;
