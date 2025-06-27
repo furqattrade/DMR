@@ -2,7 +2,9 @@ import {
   AgentEventNames,
   AgentMessageDto,
   DmrServerEvent,
-  SimpleValidationFailureMessage,
+  ISocketAckPayload,
+  SocketAckResponse,
+  SocketAckStatus,
   ValidationErrorDto,
 } from '@dmr/shared';
 import {
@@ -46,8 +48,8 @@ export class AgentGateway
   server!: Server;
 
   private readonly logger = new Logger(AgentGateway.name);
-  private handleConnectionEvent: (socket: Socket) => void = () => null;
   private originalEmit: Server['emit'];
+  private handleConnectionEvent: (socket: Socket) => void = () => null;
 
   constructor(
     private readonly authService: AuthService,
@@ -84,9 +86,9 @@ export class AgentGateway
 
     this.originalEmit = this.server.emit;
 
-    this.server.emit = (event: string, ...args: unknown[]) => {
+    this.server.emit = (event: string, ...arguments_: unknown[]) => {
       this.metricService.eventsSentTotalCounter.inc({ event, namespace: '/' });
-      return this.originalEmit.apply(this.server, [event, ...args]);
+      return this.originalEmit.apply(this.server, [event, ...arguments_]) as boolean;
     };
   }
 
@@ -161,18 +163,37 @@ export class AgentGateway
     this.logger.log('Agent configurations updated and emitted to all connected clients');
   }
 
-  public forwardMessageToAgent(agentId: string, message: AgentMessageDto): void {
+  public async forwardMessageToAgent(
+    agentId: string,
+    message: AgentMessageDto,
+  ): Promise<ISocketAckPayload | null> {
     try {
       const socket = this.findSocketByAgentId(agentId);
       if (!socket) {
         this.logger.warn(`No connected socket found for agent ${agentId}`);
         return;
       }
-      socket.emit(AgentEventNames.MESSAGE_FROM_DMR_SERVER, message);
+
+      const response = (await socket.emitWithAck(
+        AgentEventNames.MESSAGE_FROM_DMR_SERVER,
+        message,
+      )) as ISocketAckPayload;
+
+      if (response.status === SocketAckStatus.ERROR) {
+        await this.rabbitMQMessageService.sendValidationFailure(
+          message,
+          response.errors,
+          message.receivedAt ?? new Date().toISOString(),
+        );
+      }
+
       this.logger.log(`Message forwarded to agent ${agentId} (Socket ID: ${socket.id})`);
+      return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(`Error forwarding RabbitMQ message to agent: ${errorMessage}`);
+
+      return null;
     }
   }
 
@@ -190,7 +211,8 @@ export class AgentGateway
   async handleMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: unknown,
-  ): Promise<void> {
+  ): Promise<SocketAckResponse> {
+    let socketAckResponse: SocketAckResponse;
     const receivedAt = new Date().toISOString();
     const end = this.metricService.messageProcessingDurationSecondsHistogram.startTimer({
       event: AgentEventNames.MESSAGE_TO_DMR_SERVER,
@@ -199,23 +221,18 @@ export class AgentGateway
     try {
       const result = await this.messageValidator.validateMessage(data, receivedAt);
       await this.handleValidMessage(result, receivedAt);
+      socketAckResponse = { status: SocketAckStatus.OK };
     } catch (error: unknown) {
       await this.handleMessageError(error);
+
+      socketAckResponse = {
+        status: SocketAckStatus.ERROR,
+        error: error instanceof Error ? error.message : JSON.stringify(error),
+      };
     }
 
     end();
-  }
-
-  @SubscribeMessage(AgentEventNames.MESSAGE_PROCESSING_FAILED)
-  async handleError(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: SimpleValidationFailureMessage,
-  ) {
-    await this.rabbitMQMessageService.sendValidationFailure(
-      data.message,
-      data.errors,
-      data.receivedAt,
-    );
+    return socketAckResponse;
   }
 
   private async handleValidMessage(
