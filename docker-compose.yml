@@ -90,6 +90,7 @@ services:
       - AGENT_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAzswOj9MYib7AdrZ4Xc5Eoz/wS6RwHaN1YxZq+rF9c8o2NCtp\nYs3DLOia8UdS3CQXyPjBfJlQbCiJpP8/FTd3SYRlkU0=\n-----END RSA PRIVATE KEY-----
       - AGENT_ID=d3b07384-d9a0-4c3f-a4e2-123456789abc
       - OUTGOING_MESSAGE_ENDPOINT=http://localhost:3001/api/messages
+      - INCOMING_MESSAGE_REQUEST_TIMEOUT_MS=2000
     networks:
       - bykstack
 
@@ -115,6 +116,7 @@ services:
       - AGENT_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAzswOj9MYib7AdrZ4Xc5Eoz/wS6RwHaN1YxZq+rF9c8o2NCtp\nYs3DLOia8UdS3CQXyPjBfJlQbCiJpP8/FTd3SYRlkU0=\n-----END RSA PRIVATE KEY-----
       - AGENT_ID=a1e45678-12bc-4ef0-9876-def123456789
       - OUTGOING_MESSAGE_ENDPOINT=http://localhost:3002/api/messages
+      - INCOMING_MESSAGE_REQUEST_TIMEOUT_MS=2000
     networks:
       - bykstack
 
