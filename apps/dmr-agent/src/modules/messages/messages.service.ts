@@ -4,24 +4,33 @@ import {
   AgentEncryptedMessageDto,
   AgentEventNames,
   AgentMessageDto,
+  ValidationErrorType,
   ExternalServiceMessageDto,
   IAgent,
   IAgentList,
-  ISocketAckCallback,
   MessageType,
+  SocketAckResponse,
   SocketAckStatus,
   Utils,
-  ValidationErrorType,
+  ISocketAckCallback,
 } from '@dmr/shared';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
 import { HttpService } from '@nestjs/axios';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
+import {
+  BadGatewayException,
+  BadRequestException,
+  GatewayTimeoutException,
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { AgentConfig, agentConfig } from '../../common/config';
 import { WebsocketService } from '../websocket/websocket.service';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class MessagesService implements OnModuleInit {
@@ -220,6 +229,46 @@ export class MessagesService implements OnModuleInit {
     }
 
     this.logger.log(`Message encrypted successfully`);
+
+    if (!this.websocketService.isConnected()) {
+      this.logger.error('WebSocket service is not connected to DMR server.');
+      throw new BadGatewayException('WebSocket service is not connected to DMR server.');
+    }
+
+    const socket = this.websocketService.getSocket();
+
+    if (!socket) {
+      this.logger.error(
+        'Failed to get socket instance even though connection was reported as active',
+      );
+      throw new BadGatewayException(
+        'Failed to get socket instance even though connection was reported as active.',
+      );
+    }
+
+    try {
+      const ack = (await socket.emitWithAck(
+        AgentEventNames.MESSAGE_TO_DMR_SERVER,
+        encryptedMessage,
+      )) as SocketAckResponse;
+
+      if (ack.status === SocketAckStatus.ERROR) {
+        this.logger.error(ack.error);
+        throw new BadRequestException(ack.error);
+      }
+
+      this.logger.log('DMR Server acknowledged message');
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Unexpected error sending message to DMR Server';
+
+      if (error instanceof GatewayTimeoutException || error instanceof BadGatewayException) {
+        throw error;
+      }
+
+      this.logger.error(message);
+      throw new BadGatewayException(message);
+    }
   }
 
   async encryptMessagePayloadFromExternalService(

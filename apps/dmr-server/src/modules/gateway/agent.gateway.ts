@@ -2,8 +2,9 @@ import {
   AgentEventNames,
   AgentMessageDto,
   DmrServerEvent,
-  ISocketAckPayload,
+  SocketAckResponse,
   SocketAckStatus,
+  ISocketAckPayload,
   ValidationErrorDto,
 } from '@dmr/shared';
 import {
@@ -207,7 +208,8 @@ export class AgentGateway
   async handleMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: unknown,
-  ): Promise<void> {
+  ): Promise<SocketAckResponse> {
+    let socketAckResponse: SocketAckResponse;
     const receivedAt = new Date().toISOString();
     const end = this.metricService.messageProcessingDurationSecondsHistogram.startTimer({
       event: AgentEventNames.MESSAGE_TO_DMR_SERVER,
@@ -216,11 +218,18 @@ export class AgentGateway
     try {
       const result = await this.messageValidator.validateMessage(data, receivedAt);
       await this.handleValidMessage(result, receivedAt);
+      socketAckResponse = { status: SocketAckStatus.OK };
     } catch (error: unknown) {
       await this.handleMessageError(error);
+
+      socketAckResponse = {
+        status: SocketAckStatus.ERROR,
+        error: error instanceof Error ? error.message : JSON.stringify(error),
+      };
     }
 
     end();
+    return socketAckResponse;
   }
 
   private async handleValidMessage(
