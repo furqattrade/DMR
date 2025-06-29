@@ -3,16 +3,14 @@ import {
   AgentDto,
   AgentEncryptedMessageDto,
   AgentEventNames,
-  AgentMessageDto,
-  ValidationErrorType,
   ExternalServiceMessageDto,
   IAgent,
   IAgentList,
-  MessageType,
+  ISocketAckCallback,
   SocketAckResponse,
   SocketAckStatus,
   Utils,
-  ISocketAckCallback,
+  ValidationErrorType,
 } from '@dmr/shared';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -28,9 +26,9 @@ import {
   Logger,
   OnModuleInit,
 } from '@nestjs/common';
+import { firstValueFrom } from 'rxjs';
 import { AgentConfig, agentConfig } from '../../common/config';
 import { WebsocketService } from '../websocket/websocket.service';
-import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class MessagesService implements OnModuleInit {
@@ -146,7 +144,7 @@ export class MessagesService implements OnModuleInit {
   }
 
   private async handleMessageFromDMRServerEvent(
-    message: AgentMessageDto,
+    message: AgentEncryptedMessageDto,
     ackCb: ISocketAckCallback,
   ): Promise<void> {
     try {
@@ -166,10 +164,29 @@ export class MessagesService implements OnModuleInit {
         });
       }
 
+      // Parse the decrypted payload back to the structured format
+      let parsedPayload;
+      try {
+        parsedPayload = JSON.parse(decryptedMessage.payload[0]);
+      } catch (parseError) {
+        this.logger.error('Failed to parse decrypted payload');
+        return ackCb({
+          status: SocketAckStatus.ERROR,
+          errors: [
+            {
+              type: ValidationErrorType.DECRYPTION_FAILED,
+              message: 'Failed to parse decrypted payload',
+            },
+          ],
+        });
+      }
+
       const outgoingMessage: ExternalServiceMessageDto = {
         id: message.id,
         recipientId: message.recipientId,
-        payload: decryptedMessage.payload,
+        timestamp: message.timestamp,
+        type: message.type,
+        payload: parsedPayload,
       };
 
       await this.handleOutgoingMessage(outgoingMessage);
@@ -283,19 +300,22 @@ export class MessagesService implements OnModuleInit {
         return null;
       }
 
+      // Serialize the payload to JSON for encryption
+      const serializedPayload = JSON.stringify(message.payload);
+
       const encryptedPayload = await Utils.encryptPayload(
-        message.payload,
+        [serializedPayload], // Convert to string array as expected by Utils.encryptPayload
         this.agentConfig.privateKey,
         recipient.authenticationCertificate,
       );
 
       const encryptedMessage: AgentEncryptedMessageDto = {
         id: uuid,
-        type: MessageType.ChatMessage,
+        type: message.type, // Use the type from the incoming message
         payload: encryptedPayload,
         recipientId: recipient.id,
         senderId: this.agentConfig.id,
-        timestamp: new Date().toISOString(),
+        timestamp: message.timestamp, // Use the timestamp from the incoming message
       };
 
       return encryptedMessage;
