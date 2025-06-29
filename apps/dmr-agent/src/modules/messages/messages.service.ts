@@ -164,7 +164,6 @@ export class MessagesService implements OnModuleInit {
         });
       }
 
-      // Parse the decrypted payload back to the structured format
       let parsedPayload;
       try {
         parsedPayload = JSON.parse(decryptedMessage.payload[0]);
@@ -300,22 +299,21 @@ export class MessagesService implements OnModuleInit {
         return null;
       }
 
-      // Serialize the payload to JSON for encryption
       const serializedPayload = JSON.stringify(message.payload);
 
       const encryptedPayload = await Utils.encryptPayload(
-        [serializedPayload], // Convert to string array as expected by Utils.encryptPayload
+        [serializedPayload],
         this.agentConfig.privateKey,
         recipient.authenticationCertificate,
       );
 
       const encryptedMessage: AgentEncryptedMessageDto = {
         id: uuid,
-        type: message.type, // Use the type from the incoming message
+        type: message.type,
         payload: encryptedPayload,
         recipientId: recipient.id,
         senderId: this.agentConfig.id,
-        timestamp: message.timestamp, // Use the timestamp from the incoming message
+        timestamp: message.timestamp,
       };
 
       return encryptedMessage;
