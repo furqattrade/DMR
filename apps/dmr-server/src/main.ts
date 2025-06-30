@@ -35,9 +35,15 @@ async function bootstrap(): Promise<void> {
 
   if (appConfig.environment === 'development') {
     logger.log(`Listening on ${await app.getUrl()}`);
+  }
+
+  if (appConfig.mswEnable) {
+    logger.log('Mock values enabled');
 
     const server = setupServer(...handlers);
-    server.listen();
+    server.listen({
+      onUnhandledRequest: 'bypass',
+    });
   }
 }
 
