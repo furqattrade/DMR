@@ -10,9 +10,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { MessageType } from '../enums';
-import { ChatMessagePayload } from '../interfaces';
 
-export abstract class Message<T> {
+abstract class Message<T> {
   @IsUUID()
   @IsNotEmpty()
   id!: string;
@@ -32,7 +31,7 @@ export abstract class Message<T> {
   abstract payload: T;
 }
 
-export class ChatDto {
+class ChatDto {
   @IsUUID()
   @IsNotEmpty()
   id!: string;
@@ -74,7 +73,7 @@ export class ChatDto {
   endUserUrl?: string;
 }
 
-export class ChatMessageDto {
+class ChatMessageDto {
   @IsUUID()
   @IsNotEmpty()
   id!: string;
@@ -103,8 +102,8 @@ export class ChatMessageDto {
   @IsNotEmpty()
   authorTimestamp!: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   authorFirstName!: string;
 
   @IsOptional()
@@ -115,12 +114,12 @@ export class ChatMessageDto {
   @IsNotEmpty()
   authorRole!: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   forwardedByUser!: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   forwardedFromCsa!: string;
 
   @IsString()
@@ -160,7 +159,7 @@ export class ChatMessageDto {
   options?: string;
 }
 
-export class ChatMessagePayloadDto {
+class ChatMessagePayloadDto {
   @ValidateNested()
   @Type(() => ChatDto)
   chat!: ChatDto;
@@ -170,7 +169,7 @@ export class ChatMessagePayloadDto {
   messages!: ChatMessageDto[];
 }
 
-export class ExternalServiceMessageDto extends Message<ChatMessagePayload> {
+export class ExternalServiceMessageDto extends Message<ChatMessagePayloadDto> {
   @ValidateIf((obj) => obj.type === MessageType.ChatMessage)
   @ValidateNested()
   @Type(() => ChatMessagePayloadDto)

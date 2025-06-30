@@ -1,6 +1,5 @@
 export * from './agent.interface';
 export * from './centops.interface';
-export * from './chat-message.interface';
 export * from './jwt-payload.interface';
 export * from './rabbit-management-ui.interface';
 export * from './socket-ack-callback.interface';

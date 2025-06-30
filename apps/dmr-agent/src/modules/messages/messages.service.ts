@@ -164,28 +164,12 @@ export class MessagesService implements OnModuleInit {
         });
       }
 
-      let parsedPayload: unknown;
-      try {
-        parsedPayload = JSON.parse(decryptedMessage.payload[0]) as unknown;
-      } catch {
-        this.logger.error('Failed to parse decrypted payload');
-        return ackCb({
-          status: SocketAckStatus.ERROR,
-          errors: [
-            {
-              type: ValidationErrorType.DECRYPTION_FAILED,
-              message: 'Failed to parse decrypted payload',
-            },
-          ],
-        });
-      }
-
       const outgoingMessage: ExternalServiceMessageDto = {
         id: message.id,
         recipientId: message.recipientId,
         timestamp: message.timestamp,
         type: message.type,
-        payload: parsedPayload as any,
+        payload: decryptedMessage.payload as any,
       };
 
       await this.handleOutgoingMessage(outgoingMessage);
@@ -299,10 +283,8 @@ export class MessagesService implements OnModuleInit {
         return null;
       }
 
-      const serializedPayload = JSON.stringify(message.payload);
-
       const encryptedPayload = await Utils.encryptPayload(
-        [serializedPayload],
+        message.payload,
         this.agentConfig.privateKey,
         recipient.authenticationCertificate,
       );

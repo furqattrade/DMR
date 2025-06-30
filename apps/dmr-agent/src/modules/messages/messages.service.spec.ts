@@ -155,7 +155,7 @@ describe('AgentsService', () => {
   });
 
   const encryptedPayload = 'encrypted-payload';
-  const decryptedPayload = { data: ['decrypted'] };
+  const decryptedPayload = { data: { content: 'decrypted payload' } };
 
   describe('encryptMessagePayloadFromExternalService', () => {
     const validChatPayload = {
@@ -209,9 +209,9 @@ describe('AgentsService', () => {
         }),
       );
 
-      // Verify that the payload was serialized to JSON before encryption
+      // Verify that the payload was passed directly to encryption
       expect(Utils.encryptPayload).toHaveBeenCalledWith(
-        [JSON.stringify(validChatPayload)],
+        validChatPayload,
         agentConfigMock.privateKey,
         mockRecipient.authenticationCertificate,
       );
@@ -705,7 +705,7 @@ describe('AgentsService', () => {
       const decryptedMessage = {
         id: 'msg-1',
         type: MessageType.ChatMessage,
-        payload: [JSON.stringify(originalPayload)], // Payload is serialized JSON
+        payload: originalPayload, // Payload is the original object
         senderId: mockSender.id,
         recipientId: agentConfigMock.id,
         timestamp: '2023-01-01T12:00:00.000Z',
@@ -726,14 +726,14 @@ describe('AgentsService', () => {
           recipientId: message.recipientId,
           timestamp: message.timestamp,
           type: message.type,
-          payload: originalPayload, // Should be parsed back to object
+          payload: originalPayload, // Should be the original object
         }),
       );
 
       expect(ackCbSpy).toHaveBeenCalledWith({ status: SocketAckStatus.OK });
     });
 
-    it('should handle JSON parsing errors in decrypted payload', async () => {
+    it('should handle decryption failures', async () => {
       const message = {
         id: 'msg-1',
         type: MessageType.ChatMessage,
@@ -743,20 +743,9 @@ describe('AgentsService', () => {
         timestamp: '2023-01-01T12:00:00.000Z',
       };
 
-      const decryptedMessage = {
-        id: 'msg-1',
-        type: MessageType.ChatMessage,
-        payload: ['invalid-json'], // Invalid JSON that will fail parsing
-        senderId: 'sender-id',
-        recipientId: agentConfigMock.id,
-        timestamp: '2023-01-01T12:00:00.000Z',
-      };
-
       const ackCbSpy = vi.fn();
 
-      vi.spyOn(service as any, 'decryptMessagePayloadFromDMRServer').mockResolvedValueOnce(
-        decryptedMessage,
-      );
+      vi.spyOn(service as any, 'decryptMessagePayloadFromDMRServer').mockResolvedValueOnce(null);
 
       await (service as any).handleMessageFromDMRServerEvent(message, ackCbSpy);
 
@@ -766,7 +755,7 @@ describe('AgentsService', () => {
           errors: expect.arrayContaining([
             expect.objectContaining({
               type: ValidationErrorType.DECRYPTION_FAILED,
-              message: 'Failed to parse decrypted payload',
+              message: 'Failed to decrypt message from DMR Server',
             }),
           ]),
         }),
@@ -774,8 +763,8 @@ describe('AgentsService', () => {
     });
   });
 
-  describe('JSON serialization in encryption', () => {
-    it('should serialize complex payload objects to JSON for encryption', async () => {
+  describe('Direct payload encryption', () => {
+    it('should encrypt complex payload objects directly without serialization', async () => {
       const mockRecipient = {
         id: 'recipient-id',
         authenticationCertificate: 'mock-recipient-key',
@@ -832,20 +821,12 @@ describe('AgentsService', () => {
 
       await service.encryptMessagePayloadFromExternalService(message);
 
-      // Verify that Utils.encryptPayload was called with the serialized JSON
+      // Verify that Utils.encryptPayload was called directly with the payload object
       expect(Utils.encryptPayload).toHaveBeenCalledWith(
-        [JSON.stringify(complexPayload)],
+        complexPayload,
         agentConfigMock.privateKey,
         mockRecipient.authenticationCertificate,
       );
-
-      // Verify that the JSON serialization preserves the structure
-      const serializedPayload = JSON.stringify(complexPayload);
-      const parsedPayload = JSON.parse(serializedPayload);
-      expect(parsedPayload).toEqual(complexPayload);
-      expect(parsedPayload.chat.endUserEmail).toBe('john@example.com');
-      expect(parsedPayload.messages).toHaveLength(2);
-      expect(parsedPayload.messages[1].authorRole).toBe('agent');
     });
   });
 
