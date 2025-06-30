@@ -122,8 +122,8 @@ class ChatMessageDto {
   @IsString()
   forwardedFromCsa!: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   forwardedToCsa!: string;
 
   @IsOptional()
