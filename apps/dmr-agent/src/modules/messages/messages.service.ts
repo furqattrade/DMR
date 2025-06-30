@@ -164,10 +164,10 @@ export class MessagesService implements OnModuleInit {
         });
       }
 
-      let parsedPayload;
+      let parsedPayload: unknown;
       try {
-        parsedPayload = JSON.parse(decryptedMessage.payload[0]);
-      } catch (parseError) {
+        parsedPayload = JSON.parse(decryptedMessage.payload[0]) as unknown;
+      } catch {
         this.logger.error('Failed to parse decrypted payload');
         return ackCb({
           status: SocketAckStatus.ERROR,
@@ -185,7 +185,7 @@ export class MessagesService implements OnModuleInit {
         recipientId: message.recipientId,
         timestamp: message.timestamp,
         type: message.type,
-        payload: parsedPayload,
+        payload: parsedPayload as any,
       };
 
       await this.handleOutgoingMessage(outgoingMessage);

@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { MessageType } from '../enums';
@@ -170,6 +171,7 @@ export class ChatMessagePayloadDto {
 }
 
 export class ExternalServiceMessageDto extends Message<ChatMessagePayload> {
+  @ValidateIf((obj) => obj.type === MessageType.ChatMessage)
   @ValidateNested()
   @Type(() => ChatMessagePayloadDto)
   payload!: ChatMessagePayloadDto;

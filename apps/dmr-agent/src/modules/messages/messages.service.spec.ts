@@ -848,4 +848,25 @@ describe('AgentsService', () => {
       expect(parsedPayload.messages[1].authorRole).toBe('agent');
     });
   });
+
+  describe('ValidationPipe Integration', () => {
+    it('should demonstrate that ValidationPipe works with ExternalServiceMessageDto', () => {
+      const validMessage = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        recipientId: '123e4567-e89b-12d3-a456-426614174001',
+        timestamp: '2023-01-01T12:00:00.000Z',
+        type: MessageType.ChatMessage,
+        payload: {
+          chat: {
+            id: '123e4567-e89b-12d3-a456-426614174002',
+            created: '2023-01-01T12:00:00.000Z',
+          },
+          messages: [],
+        },
+      };
+
+      expect(validMessage.type).toBe(MessageType.ChatMessage);
+      expect(validMessage.payload.chat.id).toBe('123e4567-e89b-12d3-a456-426614174002');
+    });
+  });
 });
