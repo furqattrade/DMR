@@ -3,6 +3,7 @@ import {
   AgentDto,
   AgentEncryptedMessageDto,
   AgentEventNames,
+  ChatMessagePayloadDto,
   ExternalServiceMessageDto,
   IAgent,
   IAgentList,
@@ -169,7 +170,7 @@ export class MessagesService implements OnModuleInit {
         recipientId: message.recipientId,
         timestamp: message.timestamp,
         type: message.type,
-        payload: decryptedMessage.payload as any,
+        payload: decryptedMessage.payload as unknown as ChatMessagePayloadDto,
       };
 
       await this.handleOutgoingMessage(outgoingMessage);

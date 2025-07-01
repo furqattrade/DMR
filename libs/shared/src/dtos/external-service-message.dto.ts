@@ -159,7 +159,7 @@ class ChatMessageDto {
   options?: string;
 }
 
-class ChatMessagePayloadDto {
+export class ChatMessagePayloadDto {
   @ValidateNested()
   @Type(() => ChatDto)
   chat!: ChatDto;
