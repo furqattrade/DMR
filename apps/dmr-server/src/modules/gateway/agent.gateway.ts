@@ -90,6 +90,7 @@ export class AgentGateway
 
       return Server.prototype.emit.call(this.server, event, ...arguments_) as boolean;
     };
+    this.server.emit = emit;
   }
 
   onModuleDestroy() {
