@@ -159,10 +159,71 @@ export class AgentGateway
   }
 
   @OnEvent(DmrServerEvent.UPDATED)
-  onAgentConfigUpdate(data: CentOpsConfigurationDifference): void {
+  async onAgentConfigUpdate(data: CentOpsConfigurationDifference): Promise<void> {
     this.server.emit(AgentEventNames.PARTIAL_AGENT_LIST, [...data.added, ...data.deleted]);
 
     this.logger.log('Agent configurations updated and emitted to all connected clients');
+
+    await this.validateActiveConnections(data);
+  }
+
+  private async validateActiveConnections(data: CentOpsConfigurationDifference): Promise<void> {
+    const connectedSockets = this.server.sockets.sockets;
+
+    if (connectedSockets.size === 0) {
+      return;
+    }
+
+    const currentAgentConfigs = await this.centOpsService.getCentOpsConfigurations();
+    const currentAgentMap = new Map(currentAgentConfigs.map((agent) => [agent.id, agent]));
+
+    const deletedAgentIds = new Set(data.deleted.map((agent) => agent.id));
+    const certificateChangedAgentIds = new Set(data.certificateChanged.map((agent) => agent.id));
+
+    for (const [, socket] of connectedSockets.entries()) {
+      const agentId = socket.agent?.sub;
+      const connectionCertificate = socket.agent?.authenticationCertificate;
+
+      if (!agentId || !connectionCertificate) {
+        continue;
+      }
+
+      let shouldDisconnect = false;
+      let reason = '';
+
+      if (deletedAgentIds.has(agentId)) {
+        shouldDisconnect = true;
+        reason = 'Agent no longer in authorized list';
+      } else if (certificateChangedAgentIds.has(agentId)) {
+        shouldDisconnect = true;
+        reason = 'Agent certificate has been rotated/revoked';
+      } else {
+        const currentAgentConfig = currentAgentMap.get(agentId);
+        if (!currentAgentConfig) {
+          shouldDisconnect = true;
+          reason = 'Agent not found in current authorized list';
+        } else if (currentAgentConfig.authenticationCertificate !== connectionCertificate) {
+          shouldDisconnect = true;
+          reason = 'Agent certificate mismatch with current configuration';
+        }
+      }
+
+      if (shouldDisconnect) {
+        this.logger.warn(
+          `Dropping connection for agent ${agentId} (Socket ID: ${socket.id}): ${reason}`,
+        );
+
+        try {
+          await this.rabbitService.unsubscribe(agentId);
+        } catch (error) {
+          this.logger.error(
+            `Error unsubscribing agent ${agentId} during security disconnect: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          );
+        }
+
+        socket.disconnect(true);
+      }
+    }
   }
 
   public async forwardMessageToAgent(

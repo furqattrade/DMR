@@ -3,4 +3,5 @@ export interface JwtPayload {
   iat: number;
   exp: number;
   cat: number;
+  authenticationCertificate?: string;
 }

@@ -1,28 +1,28 @@
+import {
+  AgentDto,
+  ClientConfigDto,
+  DmrServerEvent,
+  IGetAgentConfigListResponse,
+} from '@dmr/shared';
 import { HttpService } from '@nestjs/axios';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   BadRequestException,
+  forwardRef,
   Inject,
   Injectable,
   Logger,
   OnModuleInit,
-  forwardRef,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { firstValueFrom } from 'rxjs';
-import {
-  AgentDto,
-  DmrServerEvent,
-  ClientConfigDto,
-  IGetAgentConfigListResponse,
-} from '@dmr/shared';
 import { CronJob } from 'cron';
+import { firstValueFrom } from 'rxjs';
 import { CentOpsConfig, centOpsConfig } from '../../common/config';
 import { RabbitMQService } from '../../libs/rabbitmq';
 import { CentOpsConfigurationDifference } from './interfaces/cent-ops-configuration-difference.interface';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class CentOpsService implements OnModuleInit {
@@ -129,6 +129,13 @@ export class CentOpsService implements OnModuleInit {
 
       await this.cacheManager.set(this.CENT_OPS_CONFIG_CACHE_KEY, newConfigurations);
       this.eventEmitter.emit(DmrServerEvent.UPDATED, difference);
+
+      if (difference.certificateChanged.length > 0) {
+        this.logger.warn(
+          `Certificate changes detected for ${difference.certificateChanged.length} agent(s): ${difference.certificateChanged.map((agent) => agent.id).join(', ')}`,
+        );
+      }
+
       this.logger.log('CentOps configuration updated and stored in memory.');
 
       return newConfigurations;
@@ -150,10 +157,18 @@ export class CentOpsService implements OnModuleInit {
 
     const added: AgentDto[] = [];
     const deleted: AgentDto[] = [];
+    const certificateChanged: AgentDto[] = [];
+
+    const oldConfigMap = new Map(cacheData.map((item) => [item.id, item]));
 
     for (const newItem of centOpsData) {
       if (!oldIds.has(newItem.id)) {
         added.push({ ...newItem, deleted: false });
+      } else {
+        const oldItem = oldConfigMap.get(newItem.id);
+        if (oldItem && oldItem.authenticationCertificate !== newItem.authenticationCertificate) {
+          certificateChanged.push({ ...newItem, deleted: false });
+        }
       }
     }
 
@@ -166,6 +181,7 @@ export class CentOpsService implements OnModuleInit {
     return {
       added: added,
       deleted: deleted,
+      certificateChanged: certificateChanged,
     };
   }
 }
