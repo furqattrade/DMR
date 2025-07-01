@@ -104,7 +104,7 @@ class ChatMessageDto {
 
   @IsOptional()
   @IsString()
-  authorFirstName!: string;
+  authorFirstName?: string;
 
   @IsOptional()
   @IsString()
@@ -116,15 +116,15 @@ class ChatMessageDto {
 
   @IsOptional()
   @IsString()
-  forwardedByUser!: string;
+  forwardedByUser?: string;
 
   @IsOptional()
   @IsString()
-  forwardedFromCsa!: string;
+  forwardedFromCsa?: string;
 
   @IsOptional()
   @IsString()
-  forwardedToCsa!: string;
+  forwardedToCsa?: string;
 
   @IsOptional()
   @IsString()
