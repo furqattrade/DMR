@@ -53,7 +53,9 @@ export class MessagesService implements OnModuleInit, OnModuleDestroy {
   onModuleDestroy() {
     const socket = this.websocketService.getSocket();
 
-    socket.removeAllListeners();
+    if (socket) {
+      socket.removeAllListeners();
+    }
   }
 
   private setupSocketEventListeners(): void {
