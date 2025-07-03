@@ -29,6 +29,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
   private readonly logger = new Logger(RabbitMQService.name);
   private readonly RECONNECT_INTERVAL_NAME = 'RECONNECT_INTERVAL_NAME';
+  private readonly CHANNEL_NOT_AVAILABLE_ERROR = 'RabbitMQ channel is not available';
 
   constructor(
     @Inject(rabbitMQConfig.KEY)
@@ -164,7 +165,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     const channel = this.channel;
 
     if (!channel) {
-      this.logger.error('RabbitMQ channel is not available');
+      this.logger.error(this.CHANNEL_NOT_AVAILABLE_ERROR);
       return false;
     }
 
@@ -195,7 +196,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     const channel = this.channel;
 
     if (!channel) {
-      this.logger.error('RabbitMQ channel is not available');
+      this.logger.error(this.CHANNEL_NOT_AVAILABLE_ERROR);
       return false;
     }
 
@@ -249,7 +250,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
     if (!channel) {
       this.logger.error(
-        `Cannot subscribe to queue ${queueName}: RabbitMQ channel is not available`,
+        `Cannot subscribe to queue ${queueName}: ${this.CHANNEL_NOT_AVAILABLE_ERROR}`,
       );
       return false;
     }
@@ -341,7 +342,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     const consumeTagKey = this.getConsumeTagKey(queueName);
 
     if (!channel) {
-      this.logger.error('RabbitMQ channel is not available');
+      this.logger.error(this.CHANNEL_NOT_AVAILABLE_ERROR);
       return false;
     }
 
