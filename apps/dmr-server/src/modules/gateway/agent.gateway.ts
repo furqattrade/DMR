@@ -1,6 +1,7 @@
 import {
   AgentEventNames,
   AgentMessageDto,
+  ClientConfigDto,
   DmrServerEvent,
   ISocketAckPayload,
   SocketAckResponse,
@@ -205,49 +206,63 @@ export class AgentGateway
     const certificateChangedAgentIds = new Set(data.certificateChanged.map((agent) => agent.id));
 
     for (const [, socket] of connectedSockets.entries()) {
-      const agentId = socket.jwtPayload?.sub;
-      const connectionCertificate = socket.authenticationCertificate;
+      await this.validateAndDisconnectSocket(
+        socket,
+        deletedAgentIds,
+        certificateChangedAgentIds,
+        currentAgentMap,
+      );
+    }
+  }
 
-      if (!agentId || !connectionCertificate) {
-        continue;
-      }
+  private async validateAndDisconnectSocket(
+    socket: Socket,
+    deletedAgentIds: Set<string>,
+    certificateChangedAgentIds: Set<string>,
+    currentAgentMap: Map<string, ClientConfigDto>,
+  ): Promise<void> {
+    const agentId = socket.jwtPayload?.sub;
+    const connectionCertificate = socket.authenticationCertificate;
 
-      let shouldDisconnect = false;
-      let reason = '';
+    if (!agentId || !connectionCertificate) {
+      return;
+    }
 
-      if (deletedAgentIds.has(agentId)) {
+    let shouldDisconnect = false;
+    let reason = '';
+
+    if (deletedAgentIds.has(agentId)) {
+      shouldDisconnect = true;
+      reason = 'Agent no longer in authorized list';
+    } else if (certificateChangedAgentIds.has(agentId)) {
+      shouldDisconnect = true;
+      reason = 'Agent certificate has been rotated/revoked';
+    } else {
+      // Defensive safety check: Verify agent exists in the fresh configuration from CentOps.
+      // This catches edge cases where an agent might not be in the deleted/certificateChanged arrays
+      // but is also not present in the current authorized configuration (due to data processing bugs
+      // or inconsistencies in the configuration update event).
+      const currentAgentConfig = currentAgentMap.get(agentId);
+      if (!currentAgentConfig) {
         shouldDisconnect = true;
-        reason = 'Agent no longer in authorized list';
-      } else if (certificateChangedAgentIds.has(agentId)) {
-        shouldDisconnect = true;
-        reason = 'Agent certificate has been rotated/revoked';
-      } else {
-        // Defensive safety check: Verify agent exists in the fresh configuration from CentOps.
-        // This catches edge cases where an agent might not be in the deleted/certificateChanged arrays
-        // but is also not present in the current authorized configuration (due to data processing bugs
-        // or inconsistencies in the configuration update event).
-        const currentAgentConfig = currentAgentMap.get(agentId);
-        if (!currentAgentConfig) {
-          shouldDisconnect = true;
-          reason = 'Agent not found in current authorized list';
-        }
+        reason = 'Agent not found in current authorized list';
       }
+    }
 
-      if (shouldDisconnect) {
-        this.logger.warn(
-          `Dropping connection for agent ${agentId} (Socket ID: ${socket.id}): ${reason}`,
+    if (shouldDisconnect) {
+      this.logger.warn(
+        `Dropping connection for agent ${agentId} (Socket ID: ${socket.id}): ${reason}`,
+      );
+
+      try {
+        await this.rabbitService.unsubscribe(agentId);
+      } catch (error) {
+        this.logger.error(
+          `Error unsubscribing agent ${agentId} during security disconnect: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
-
-        try {
-          await this.rabbitService.unsubscribe(agentId);
-        } catch (error) {
-          this.logger.error(
-            `Error unsubscribing agent ${agentId} during security disconnect: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          );
-        }
-
-        socket.disconnect(true);
       }
+
+      socket.disconnect(true);
     }
   }
 
