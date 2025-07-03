@@ -1,30 +1,30 @@
 import {
-    AgentEventNames,
-    AgentMessageDto,
-    DmrServerEvent,
-    ISocketAckPayload,
-    SocketAckResponse,
-    SocketAckStatus,
-    ValidationErrorDto,
-    ValidationErrorType,
+  AgentEventNames,
+  AgentMessageDto,
+  DmrServerEvent,
+  ISocketAckPayload,
+  SocketAckResponse,
+  SocketAckStatus,
+  ValidationErrorDto,
+  ValidationErrorType,
 } from '@dmr/shared';
 import {
-    BadRequestException,
-    forwardRef,
-    Inject,
-    Logger,
-    OnModuleDestroy,
-    OnModuleInit,
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import {
-    ConnectedSocket,
-    MessageBody,
-    OnGatewayConnection,
-    OnGatewayDisconnect,
-    SubscribeMessage,
-    WebSocketGateway,
-    WebSocketServer,
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { MetricService } from '../../libs/metrics';

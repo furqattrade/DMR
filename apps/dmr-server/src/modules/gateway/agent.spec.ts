@@ -1,10 +1,10 @@
 import {
-    AgentEncryptedMessageDto,
-    AgentEventNames,
-    JwtPayload,
-    MessageType,
-    SocketAckStatus,
-    ValidationErrorType,
+  AgentEncryptedMessageDto,
+  AgentEventNames,
+  JwtPayload,
+  MessageType,
+  SocketAckStatus,
+  ValidationErrorType,
 } from '@dmr/shared';
 import { BadRequestException, Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
