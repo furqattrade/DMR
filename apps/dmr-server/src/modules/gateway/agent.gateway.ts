@@ -106,21 +106,24 @@ export class AgentGateway
       const token: string = (client.handshake?.auth?.token ||
         client.handshake?.headers?.authorization?.replace('Bearer ', '')) as string;
 
-      const jwtPayload = await this.authService.verifyToken(token);
+      const connectionData = await this.authService.verifyToken(token);
 
-      Object.assign(client, { agent: jwtPayload });
+      Object.assign(client, {
+        jwtPayload: connectionData.jwtPayload,
+        authenticationCertificate: connectionData.authenticationCertificate,
+      });
 
-      const existingSocket = this.findSocketByAgentId(jwtPayload.sub);
+      const existingSocket = this.findSocketByAgentId(connectionData.jwtPayload.sub);
       if (existingSocket && existingSocket.id !== client.id) {
         this.logger.log(
-          `Dropping existing connection for agent ${jwtPayload.sub} (Socket ID: ${existingSocket.id}) in favor of new connection (Socket ID: ${client.id})`,
+          `Dropping existing connection for agent ${connectionData.jwtPayload.sub} (Socket ID: ${existingSocket.id}) in favor of new connection (Socket ID: ${client.id})`,
         );
         existingSocket.disconnect();
 
-        await this.rabbitService.unsubscribe(jwtPayload.sub);
+        await this.rabbitService.unsubscribe(connectionData.jwtPayload.sub);
       }
 
-      const consume = await this.rabbitService.subscribe(jwtPayload.sub);
+      const consume = await this.rabbitService.subscribe(connectionData.jwtPayload.sub);
 
       if (!consume) {
         client.disconnect();
@@ -142,8 +145,8 @@ export class AgentGateway
     this.metricService.activeConnectionGauge.dec(1);
     this.metricService.disconnectionsTotalCounter.inc(1);
 
-    const agentId = client?.agent?.sub;
-    const connectedAt = client?.agent?.cat;
+    const agentId = client?.jwtPayload?.sub;
+    const connectedAt = client?.jwtPayload?.cat;
 
     if (agentId) {
       await this.rabbitService.unsubscribe(agentId);
@@ -181,8 +184,8 @@ export class AgentGateway
     const certificateChangedAgentIds = new Set(data.certificateChanged.map((agent) => agent.id));
 
     for (const [, socket] of connectedSockets.entries()) {
-      const agentId = socket.agent?.sub;
-      const connectionCertificate = socket.agent?.authenticationCertificate;
+      const agentId = socket.jwtPayload?.sub;
+      const connectionCertificate = socket.authenticationCertificate;
 
       if (!agentId || !connectionCertificate) {
         continue;
@@ -202,9 +205,6 @@ export class AgentGateway
         if (!currentAgentConfig) {
           shouldDisconnect = true;
           reason = 'Agent not found in current authorized list';
-        } else if (currentAgentConfig.authenticationCertificate !== connectionCertificate) {
-          shouldDisconnect = true;
-          reason = 'Agent certificate mismatch with current configuration';
         }
       }
 
@@ -263,7 +263,7 @@ export class AgentGateway
   private findSocketByAgentId(agentId: string): Socket | null {
     const connectedSockets = this.server.sockets.sockets;
     for (const [, socket] of connectedSockets.entries()) {
-      if (socket.agent?.sub === agentId) {
+      if (socket.jwtPayload?.sub === agentId) {
         return socket;
       }
     }
