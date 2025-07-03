@@ -4,6 +4,7 @@ import {
   JwtPayload,
   MessageType,
   SocketAckStatus,
+  ValidationErrorType,
 } from '@dmr/shared';
 import { BadRequestException, Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -45,6 +46,7 @@ const mockAuthService = {
 const mockRabbitMQService = {
   subscribe: vi.fn(),
   unsubscribe: vi.fn(),
+  setupQueue: vi.fn(),
   channel: {
     sendToQueue: vi.fn(),
   },
@@ -184,12 +186,14 @@ describe('AgentGateway', () => {
       const client = createMockSocket(token);
 
       mockAuthService.verifyToken.mockResolvedValueOnce(mockConnectionData);
+      mockRabbitMQService.setupQueue.mockResolvedValueOnce(true);
       mockRabbitMQService.subscribe.mockResolvedValueOnce(true);
       mockCentOpsService.getCentOpsConfigurations.mockResolvedValueOnce(['agentA']);
 
       await gateway.handleConnection(client);
 
       expect(authService.verifyToken).toHaveBeenCalledWith(token);
+      expect(rabbitService.setupQueue).toHaveBeenCalledWith('testAgentId');
       expect(rabbitService.subscribe).toHaveBeenCalledWith('testAgentId');
       expect(centOpsService.getCentOpsConfigurations).toHaveBeenCalled();
       expect(serverMock.emit).toHaveBeenCalledWith(AgentEventNames.FULL_AGENT_LIST, ['agentA']);
@@ -204,16 +208,21 @@ describe('AgentGateway', () => {
       const client = createMockSocket(token);
 
       mockAuthService.verifyToken.mockResolvedValueOnce(mockConnectionData);
+      mockRabbitMQService.setupQueue.mockResolvedValueOnce(true);
       mockRabbitMQService.subscribe.mockResolvedValueOnce(false);
       mockCentOpsService.getCentOpsConfigurations.mockResolvedValueOnce(['agentA']);
 
       await gateway.handleConnection(client);
 
       expect(authService.verifyToken).toHaveBeenCalledWith(token);
+      expect(rabbitService.setupQueue).toHaveBeenCalledWith('testAgentId');
       expect(rabbitService.subscribe).toHaveBeenCalledWith('testAgentId');
       expect(client.disconnect).toHaveBeenCalledOnce();
       expect((client as any).jwtPayload).toEqual(mockJwtPayload);
-      expect(loggerErrorSpy).not.toHaveBeenCalled();
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'Failed to subscribe to queue for agent testAgentId',
+        'AgentGateway',
+      );
     });
 
     it('should disconnect client when consume is null', async () => {
@@ -221,11 +230,13 @@ describe('AgentGateway', () => {
       const client = createMockSocket(token);
 
       mockAuthService.verifyToken.mockResolvedValueOnce(mockConnectionData);
+      mockRabbitMQService.setupQueue.mockResolvedValueOnce(true);
       mockRabbitMQService.subscribe.mockResolvedValueOnce(null);
       mockCentOpsService.getCentOpsConfigurations.mockResolvedValueOnce(['agentA']);
 
       await gateway.handleConnection(client);
 
+      expect(rabbitService.setupQueue).toHaveBeenCalledWith('testAgentId');
       expect(rabbitService.subscribe).toHaveBeenCalledWith('testAgentId');
       expect(client.disconnect).toHaveBeenCalledOnce();
     });
@@ -239,7 +250,7 @@ describe('AgentGateway', () => {
       expect(rabbitService.subscribe).not.toHaveBeenCalled();
       expect(client.disconnect).toHaveBeenCalledOnce();
       expect(loggerErrorSpy).toHaveBeenCalledWith(
-        `Error during agent socket connection: ${client.id}`,
+        `Error during agent socket connection: ${client.id} - Cannot read properties of undefined (reading 'jwtPayload')`,
         'AgentGateway',
       );
     });
@@ -274,12 +285,15 @@ describe('AgentGateway', () => {
       client.handshake.headers.authorization = `Bearer ${token}`;
 
       mockAuthService.verifyToken.mockResolvedValueOnce(mockConnectionData);
+      mockRabbitMQService.setupQueue.mockResolvedValueOnce(true);
       mockRabbitMQService.subscribe.mockResolvedValueOnce(true);
       mockCentOpsService.getCentOpsConfigurations.mockResolvedValueOnce(['agentA']);
 
       await gateway.handleConnection(client);
 
       expect(authService.verifyToken).toHaveBeenCalledWith(token);
+      expect(rabbitService.setupQueue).toHaveBeenCalledWith('testAgentId');
+      expect(rabbitService.subscribe).toHaveBeenCalledWith('testAgentId');
       expect(serverMock.emit).toHaveBeenCalled();
     });
 
@@ -369,12 +383,33 @@ describe('AgentGateway', () => {
         jwtPayload: { iat: 1, exp: 2 } as any,
         authenticationCertificate: 'test-cert',
       });
+      mockRabbitMQService.setupQueue.mockResolvedValueOnce(true);
       mockRabbitMQService.subscribe.mockResolvedValueOnce(true);
       mockCentOpsService.getCentOpsConfigurations.mockResolvedValueOnce([]);
 
       await gateway.handleConnection(client);
 
+      expect(rabbitService.setupQueue).toHaveBeenCalledWith(undefined);
       expect(rabbitService.subscribe).toHaveBeenCalledWith(undefined);
+    });
+
+    it('should disconnect client when setupQueue fails', async () => {
+      const token = 'valid.jwt.token';
+      const client = createMockSocket(token);
+
+      mockAuthService.verifyToken.mockResolvedValueOnce(mockConnectionData);
+      mockRabbitMQService.setupQueue.mockResolvedValueOnce(false);
+
+      await gateway.handleConnection(client);
+
+      expect(authService.verifyToken).toHaveBeenCalledWith(token);
+      expect(rabbitService.setupQueue).toHaveBeenCalledWith('testAgentId');
+      expect(rabbitService.subscribe).not.toHaveBeenCalled();
+      expect(client.disconnect).toHaveBeenCalledOnce();
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'Failed to set up queue for agent testAgentId',
+        'AgentGateway',
+      );
     });
 
     it('should propagate disconnect errors', async () => {
@@ -402,6 +437,7 @@ describe('AgentGateway', () => {
 
       // Setup mocks for successful authentication and subscription
       mockAuthService.verifyToken.mockResolvedValueOnce(mockConnectionData);
+      mockRabbitMQService.setupQueue.mockResolvedValueOnce(true);
       mockRabbitMQService.subscribe.mockResolvedValueOnce(true);
       mockCentOpsService.getCentOpsConfigurations.mockResolvedValueOnce(['agentA']);
 
@@ -412,6 +448,9 @@ describe('AgentGateway', () => {
 
       // Verify we unsubscribed from the old connection's queue
       expect(rabbitService.unsubscribe).toHaveBeenCalledWith('testAgentId');
+
+      // Verify we set up the queue for the new connection
+      expect(rabbitService.setupQueue).toHaveBeenCalledWith('testAgentId');
 
       // Verify we subscribed for the new connection
       expect(rabbitService.subscribe).toHaveBeenCalledWith('testAgentId');
@@ -472,6 +511,12 @@ describe('AgentGateway', () => {
   });
 
   describe('forwardMessageToAgent', () => {
+    beforeEach(() => {
+      mockRabbitMQMessageService.sendValidMessage.mockResolvedValue(undefined);
+      mockRabbitMQMessageService.sendValidationFailure.mockResolvedValue(undefined);
+      mockHistogram.startTimer.mockClear();
+    });
+
     it('should forward message to the correct agent socket', () => {
       // Setup mock sockets
       const mockSocket1 = createMockSocket('token1', { sub: 'agent-123' }, 'socket-1');
@@ -500,6 +545,117 @@ describe('AgentGateway', () => {
       );
 
       expect(mockSocket2.emit).not.toHaveBeenCalled();
+    });
+
+    it('should handle DELIVERY_FAILED error from dmr agent', async () => {
+      // Setup mock sockets
+      const mockSocket1 = createMockSocket('token1', { sub: 'agent-123' }, 'socket-1');
+      const mockSocket2 = createMockSocket('token2', { sub: 'agent-456' }, 'socket-2');
+
+      // Add sockets to the server's sockets collection
+      (serverMock as any).setMockSockets([
+        ['socket-1', mockSocket1],
+        ['socket-2', mockSocket2],
+      ]);
+
+      const testMessage = {
+        id: 'msg-123',
+        timestamp: '2025-06-18T14:00:00Z',
+        senderId: 'server-id',
+        recipientId: 'agent-123',
+        type: MessageType.ChatMessage,
+        payload: '{"key":"value"}',
+        receivedAt: '2025-06-18T14:00:00Z',
+      };
+
+      const mockSocket1Spy = vi.spyOn(mockSocket1, 'emitWithAck').mockResolvedValue({
+        status: SocketAckStatus.ERROR,
+        errors: [
+          {
+            type: ValidationErrorType.DELIVERY_FAILED,
+            message: 'Failed to deliver message to External Service',
+          },
+        ],
+      });
+
+      const response = await gateway.forwardMessageToAgent('agent-123', testMessage);
+
+      expect(response).toEqual(
+        expect.objectContaining({
+          status: SocketAckStatus.ERROR,
+          errors: expect.arrayContaining([
+            expect.objectContaining({
+              type: ValidationErrorType.DELIVERY_FAILED,
+              message: 'Failed to deliver message to External Service',
+            }),
+          ]),
+        }),
+      );
+      expect(mockRabbitMQMessageService.sendValidationFailure).toHaveBeenCalledWith(
+        testMessage,
+        response.errors,
+        testMessage.receivedAt ?? '2025-06-18T14:00:00Z',
+      );
+      expect(mockSocket1Spy).toHaveBeenCalledWith(
+        AgentEventNames.MESSAGE_FROM_DMR_SERVER,
+        testMessage,
+      );
+
+      expect(mockSocket2.emit).not.toHaveBeenCalled();
+    });
+
+    it('should handle DECRYPTION_FAILED error from dmr agent', async () => {
+      // Setup mock sockets
+      const mockSocket1 = createMockSocket('token1', { sub: 'agent-123' }, 'socket-1');
+      const mockSocket2 = createMockSocket('token2', { sub: 'agent-456' }, 'socket-2');
+
+      // Add sockets to the server's sockets collection
+      (serverMock as any).setMockSockets([
+        ['socket-1', mockSocket1],
+        ['socket-2', mockSocket2],
+      ]);
+
+      const testMessage = {
+        id: 'msg-123',
+        timestamp: '2025-06-18T14:00:00Z',
+        senderId: 'server-id',
+        recipientId: 'agent-123',
+        type: MessageType.ChatMessage,
+        payload: '{"key":"value"}',
+        receivedAt: '2025-06-18T14:00:00Z',
+      };
+
+      const mockSocket1Spy = vi.spyOn(mockSocket1, 'emitWithAck').mockResolvedValue({
+        status: SocketAckStatus.ERROR,
+        errors: [
+          {
+            type: ValidationErrorType.DECRYPTION_FAILED,
+            message: 'Failed to decrypt message from DMR Server',
+          },
+        ],
+      });
+
+      const response = await gateway.forwardMessageToAgent('agent-123', testMessage);
+
+      expect(mockSocket1Spy).toHaveBeenCalledWith(
+        AgentEventNames.MESSAGE_FROM_DMR_SERVER,
+        testMessage,
+      );
+
+      expect(mockRabbitMQMessageService.sendValidationFailure).not.toHaveBeenCalled();
+      expect(mockSocket2.emit).not.toHaveBeenCalled();
+
+      expect(response).toEqual(
+        expect.objectContaining({
+          status: SocketAckStatus.ERROR,
+          errors: expect.arrayContaining([
+            expect.objectContaining({
+              type: ValidationErrorType.DECRYPTION_FAILED,
+              message: 'Failed to decrypt message from DMR Server',
+            }),
+          ]),
+        }),
+      );
     });
 
     it('should log warning when no socket found for agent', () => {

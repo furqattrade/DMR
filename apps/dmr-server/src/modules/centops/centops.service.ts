@@ -100,7 +100,7 @@ export class CentOpsService implements OnModuleInit {
         const clientConfig = plainToInstance(ClientConfigDto, {
           id: item.id,
           name: item.name,
-          authenticationCertificate: item.authentication_certificate,
+          authenticationCertificate: item.authentication_certificate.replace(/\\n/g, '\n'),
           createdAt: item.created_at,
           updatedAt: item.updated_at,
         });

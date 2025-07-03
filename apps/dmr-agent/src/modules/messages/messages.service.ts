@@ -25,14 +25,16 @@ import {
   Inject,
   Injectable,
   Logger,
+  OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import { AgentConfig, agentConfig } from '../../common/config';
+import { MetricService } from '../../libs/metrics';
 import { WebsocketService } from '../websocket/websocket.service';
 
 @Injectable()
-export class MessagesService implements OnModuleInit {
+export class MessagesService implements OnModuleInit, OnModuleDestroy {
   private readonly AGENTS_CACHE_KEY = 'DMR_AGENTS_LIST';
   private readonly logger = new Logger(MessagesService.name);
 
@@ -40,11 +42,18 @@ export class MessagesService implements OnModuleInit {
     @Inject(agentConfig.KEY) private readonly agentConfig: AgentConfig,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly websocketService: WebsocketService,
+    private readonly metricService: MetricService,
     private readonly httpService: HttpService,
   ) {}
 
   onModuleInit(): void {
     this.setupSocketEventListeners();
+  }
+
+  onModuleDestroy() {
+    const socket = this.websocketService.getSocket();
+
+    socket.removeAllListeners();
   }
 
   private setupSocketEventListeners(): void {
@@ -64,18 +73,36 @@ export class MessagesService implements OnModuleInit {
       return;
     }
 
-    socket.on(AgentEventNames.FULL_AGENT_LIST, (data: IAgentList) => {
-      void this.handleFullAgentListEvent(data);
+    socket.on(AgentEventNames.FULL_AGENT_LIST, async (data: IAgentList) => {
+      const endTimer = this.metricService.messageProcessingDurationSecondsHistogram.startTimer({
+        event: AgentEventNames.FULL_AGENT_LIST,
+      });
+
+      await this.handleFullAgentListEvent(data);
+
+      endTimer();
     });
 
-    socket.on(AgentEventNames.PARTIAL_AGENT_LIST, (data: IAgentList) => {
-      void this.handlePartialAgentListEvent(data);
+    socket.on(AgentEventNames.PARTIAL_AGENT_LIST, async (data: IAgentList) => {
+      const endTimer = this.metricService.messageProcessingDurationSecondsHistogram.startTimer({
+        event: AgentEventNames.PARTIAL_AGENT_LIST,
+      });
+
+      await this.handlePartialAgentListEvent(data);
+
+      endTimer();
     });
 
     socket.on(
       AgentEventNames.MESSAGE_FROM_DMR_SERVER,
-      (data: AgentEncryptedMessageDto, ackCb: ISocketAckCallback) => {
-        void this.handleMessageFromDMRServerEvent(data, ackCb);
+      async (data: AgentEncryptedMessageDto, ackCb: ISocketAckCallback) => {
+        const endTimer = this.metricService.messageProcessingDurationSecondsHistogram.startTimer({
+          event: AgentEventNames.MESSAGE_FROM_DMR_SERVER,
+        });
+
+        await this.handleMessageFromDMRServerEvent(data, ackCb);
+
+        endTimer();
       },
     );
   }
@@ -170,10 +197,24 @@ export class MessagesService implements OnModuleInit {
         recipientId: message.recipientId,
         timestamp: message.timestamp,
         type: message.type,
-        payload: decryptedMessage.payload as unknown as ChatMessagePayloadDto,
+        payload: decryptedMessage.payload as ChatMessagePayloadDto,
       };
 
-      await this.handleOutgoingMessage(outgoingMessage);
+      const response = await this.handleOutgoingMessage(outgoingMessage);
+
+      if (!response) {
+        this.logger.error('Failed to deliver message to External Service');
+
+        return ackCb({
+          status: SocketAckStatus.ERROR,
+          errors: [
+            {
+              type: ValidationErrorType.DELIVERY_FAILED,
+              message: 'Failed to deliver message to External Service',
+            },
+          ],
+        });
+      }
 
       this.logger.log(`Successfully processed and forwarded message ${message.id}`);
 
@@ -188,7 +229,7 @@ export class MessagesService implements OnModuleInit {
         status: SocketAckStatus.ERROR,
         errors: [
           {
-            type: ValidationErrorType.DECRYPTION_FAILED,
+            type: ValidationErrorType.DELIVERY_FAILED,
             message: errorMessage,
           },
         ],
@@ -196,7 +237,7 @@ export class MessagesService implements OnModuleInit {
     }
   }
 
-  private async handleOutgoingMessage(message: ExternalServiceMessageDto): Promise<void> {
+  private async handleOutgoingMessage(message: ExternalServiceMessageDto): Promise<boolean> {
     if (!this.agentConfig.outgoingMessageEndpoint) {
       throw new Error('Outgoing message endpoint not configured');
     }
@@ -204,9 +245,13 @@ export class MessagesService implements OnModuleInit {
       await firstValueFrom(
         this.httpService.post(this.agentConfig.outgoingMessageEndpoint, message),
       );
+
+      return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to handle outgoing message: ${errorMessage}`);
+      this.logger.error(`Failed to handle outgoing message: ${errorMessage}`);
+
+      return false;
     }
   }
 

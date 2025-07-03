@@ -17,10 +17,37 @@ import * as classValidator from 'class-validator';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { agentConfig, AgentConfig } from '../../common/config';
+import { MetricService } from '../../libs/metrics';
 import { WebsocketService } from '../websocket/websocket.service';
 import { MessagesService } from './messages.service';
 
-describe('AgentsService', () => {
+const mockCounter = {
+  inc: vi.fn(),
+};
+
+const mockGauge = {
+  inc: vi.fn(),
+  dec: vi.fn(),
+};
+
+const mockHistogram = {
+  observe: vi.fn(),
+  startTimer: vi.fn(() => vi.fn()),
+};
+
+const mockMetricService = {
+  httpRequestTotalCounter: mockCounter,
+  httpErrorsTotalCounter: mockCounter,
+  httpRequestDurationSecondsHistogram: mockCounter,
+  errorsTotalCounter: mockCounter,
+  activeConnectionStatusGauge: mockGauge,
+  eventsReceivedTotalCounter: mockCounter,
+  eventsSentTotalCounter: mockCounter,
+  socketConnectionDurationSecondsHistogram: mockHistogram,
+  messageProcessingDurationSecondsHistogram: mockHistogram,
+};
+
+describe('MessageService', () => {
   let service: MessagesService;
   let websocketService: WebsocketService;
   let cacheManager: Cache;
@@ -80,6 +107,7 @@ describe('AgentsService', () => {
             post: vi.fn().mockReturnValue(of({ data: {} })),
           },
         },
+        { provide: MetricService, useValue: mockMetricService },
       ],
     }).compile();
 
@@ -716,7 +744,7 @@ describe('AgentsService', () => {
       vi.spyOn(service as any, 'decryptMessagePayloadFromDMRServer').mockResolvedValueOnce(
         decryptedMessage,
       );
-      vi.spyOn(service as any, 'handleOutgoingMessage').mockResolvedValueOnce(undefined);
+      vi.spyOn(service as any, 'handleOutgoingMessage').mockResolvedValueOnce(true);
 
       await (service as any).handleMessageFromDMRServerEvent(message, ackCbSpy);
 
@@ -756,6 +784,71 @@ describe('AgentsService', () => {
             expect.objectContaining({
               type: ValidationErrorType.DECRYPTION_FAILED,
               message: 'Failed to decrypt message from DMR Server',
+            }),
+          ]),
+        }),
+      );
+    });
+
+    it('should handle delivery failures', async () => {
+      const mockSender = {
+        id: 'sender-id',
+        authenticationCertificate: 'mock-cert',
+      };
+
+      const message = {
+        id: 'msg-1',
+        type: MessageType.ChatMessage,
+        payload: 'encrypted-payload',
+        senderId: 'sender-id',
+        recipientId: agentConfigMock.id,
+        timestamp: '2023-01-01T12:00:00.000Z',
+      };
+
+      const originalPayload = {
+        chat: {
+          id: '123e4567-e89b-12d3-a456-426614174000',
+          created: '2023-01-01T12:00:00.000Z',
+        },
+        messages: [
+          {
+            id: '123e4567-e89b-12d3-a456-426614174001',
+            chatId: '123e4567-e89b-12d3-a456-426614174000',
+            authorTimestamp: '2023-01-01T12:00:00.000Z',
+            authorFirstName: 'John',
+            authorRole: 'user',
+            forwardedByUser: 'system',
+            forwardedFromCsa: 'csa1',
+            forwardedToCsa: 'csa2',
+          },
+        ],
+      };
+
+      const decryptedMessage = {
+        id: 'msg-1',
+        type: MessageType.ChatMessage,
+        payload: originalPayload, // Payload is the original object
+        senderId: mockSender.id,
+        recipientId: agentConfigMock.id,
+        timestamp: '2023-01-01T12:00:00.000Z',
+      };
+
+      const ackCbSpy = vi.fn();
+
+      vi.spyOn(service as any, 'decryptMessagePayloadFromDMRServer').mockResolvedValueOnce(
+        decryptedMessage,
+      );
+      vi.spyOn(service as any, 'handleOutgoingMessage').mockResolvedValueOnce(false);
+
+      await (service as any).handleMessageFromDMRServerEvent(message, ackCbSpy);
+
+      expect(ackCbSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: SocketAckStatus.ERROR,
+          errors: expect.arrayContaining([
+            expect.objectContaining({
+              type: ValidationErrorType.DELIVERY_FAILED,
+              message: 'Failed to deliver message to External Service',
             }),
           ]),
         }),
