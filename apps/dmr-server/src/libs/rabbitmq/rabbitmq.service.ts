@@ -163,6 +163,11 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   async setupQueueWithoutDLQ(queueName: string, ttl?: number): Promise<boolean> {
     const channel = this.channel;
 
+    if (!channel) {
+      this.logger.error('RabbitMQ channel is not available');
+      return false;
+    }
+
     try {
       await channel.assertQueue(queueName, {
         durable: true,
@@ -188,6 +193,11 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
   async deleteQueue(queueName: string): Promise<boolean> {
     const channel = this.channel;
+
+    if (!channel) {
+      this.logger.error('RabbitMQ channel is not available');
+      return false;
+    }
 
     try {
       const dlqName = this.getDLQName(queueName);
@@ -266,7 +276,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
           }
 
           if (result.status === SocketAckStatus.ERROR) {
-            const errorTypes = result.errors.map((error) => error.type);
+            const errorTypes = result.errors?.map((error) => error.type) ?? [];
 
             if (errorTypes.includes(ValidationErrorType.DECRYPTION_FAILED)) {
               return channel.nack(message, false, false);
@@ -329,6 +339,11 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   async unsubscribe(queueName: string): Promise<boolean> {
     const channel = this.channel;
     const consumeTagKey = this.getConsumeTagKey(queueName);
+
+    if (!channel) {
+      this.logger.error('RabbitMQ channel is not available');
+      return false;
+    }
 
     try {
       const consumerTag = await this.cacheManager.get<string | null>(consumeTagKey);
