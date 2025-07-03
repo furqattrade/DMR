@@ -85,10 +85,10 @@ export class AgentGateway
 
     this.server.on('connection', this.handleConnectionEvent);
 
-    const originalServerEmit = this.server.emit.bind(this.server) as Server['emit'];
+    const originalServerEmit = this.server.emit.bind(this.server);
 
     const serverEmit: Server['emit'] = (event: string, ...arguments_: unknown[]) => {
-      const sockets = this.server.sockets as unknown as Map<string, Socket>;
+      const sockets = this.server.sockets.sockets;
 
       for (const socket of [...sockets.values()]) {
         this.metricService.eventsSentTotalCounter.inc({ event, namespace: socket.nsp.name });
