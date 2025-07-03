@@ -222,6 +222,10 @@ export class AgentGateway
         shouldDisconnect = true;
         reason = 'Agent certificate has been rotated/revoked';
       } else {
+        // Defensive safety check: Verify agent exists in the fresh configuration from CentOps.
+        // This catches edge cases where an agent might not be in the deleted/certificateChanged arrays
+        // but is also not present in the current authorized configuration (e.g., due to data processing bugs
+        // or inconsistencies in the configuration update event).
         const currentAgentConfig = currentAgentMap.get(agentId);
         if (!currentAgentConfig) {
           shouldDisconnect = true;
