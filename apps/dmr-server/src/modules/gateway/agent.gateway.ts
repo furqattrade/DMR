@@ -1,6 +1,7 @@
 import {
   AgentEventNames,
   AgentMessageDto,
+  ClientConfigDto,
   DmrServerEvent,
   ISocketAckPayload,
   SocketAckResponse,
@@ -109,32 +110,38 @@ export class AgentGateway
       const token: string = (client.handshake?.auth?.token ||
         client.handshake?.headers?.authorization?.replace('Bearer ', '')) as string;
 
-      const jwtPayload = await this.authService.verifyToken(token);
+      const connectionData = await this.authService.verifyToken(token);
 
-      Object.assign(client, { agent: jwtPayload });
+      Object.assign(client, {
+        jwtPayload: connectionData.jwtPayload,
+        authenticationCertificate: connectionData.authenticationCertificate,
+      });
 
-      const existingSocket = this.findSocketByAgentId(jwtPayload.sub);
+      const existingSocket = this.findSocketByAgentId(connectionData.jwtPayload.sub);
       if (existingSocket && existingSocket.id !== client.id) {
         this.logger.log(
-          `Dropping existing connection for agent ${jwtPayload.sub} (Socket ID: ${existingSocket.id}) in favor of new connection (Socket ID: ${client.id})`,
+          `Dropping existing connection for agent ${connectionData.jwtPayload.sub} (Socket ID: ${existingSocket.id}) in favor of new connection (Socket ID: ${client.id})`,
         );
         existingSocket.disconnect();
 
-        await this.rabbitService.unsubscribe(jwtPayload.sub);
+        await this.rabbitService.unsubscribe(connectionData.jwtPayload.sub);
       }
 
-      const queueSetup = await this.rabbitService.setupQueue(jwtPayload.sub);
+      const queueSetup = await this.rabbitService.setupQueue(connectionData.jwtPayload.sub);
       if (!queueSetup) {
-        this.logger.error(`Failed to set up queue for agent ${jwtPayload.sub}`, 'AgentGateway');
+        this.logger.error(
+          `Failed to set up queue for agent ${connectionData.jwtPayload.sub}`,
+          'AgentGateway',
+        );
         client.disconnect();
         return;
       }
 
-      const consume = await this.rabbitService.subscribe(jwtPayload.sub);
+      const consume = await this.rabbitService.subscribe(connectionData.jwtPayload.sub);
 
       if (!consume) {
         this.logger.error(
-          `Failed to subscribe to queue for agent ${jwtPayload.sub}`,
+          `Failed to subscribe to queue for agent ${connectionData.jwtPayload.sub}`,
           'AgentGateway',
         );
         client.disconnect();
@@ -160,8 +167,8 @@ export class AgentGateway
     this.metricService.activeConnectionGauge.dec(1);
     this.metricService.disconnectionsTotalCounter.inc(1);
 
-    const agentId = client?.agent?.sub;
-    const connectedAt = client?.agent?.cat;
+    const agentId = client?.jwtPayload?.sub;
+    const connectedAt = client?.jwtPayload?.cat;
 
     if (agentId) {
       await this.rabbitService.unsubscribe(agentId);
@@ -177,10 +184,86 @@ export class AgentGateway
   }
 
   @OnEvent(DmrServerEvent.UPDATED)
-  onAgentConfigUpdate(data: CentOpsConfigurationDifference): void {
+  async onAgentConfigUpdate(data: CentOpsConfigurationDifference): Promise<void> {
     this.server.emit(AgentEventNames.PARTIAL_AGENT_LIST, [...data.added, ...data.deleted]);
 
     this.logger.log('Agent configurations updated and emitted to all connected clients');
+
+    await this.validateActiveConnections(data);
+  }
+
+  private async validateActiveConnections(data: CentOpsConfigurationDifference): Promise<void> {
+    const connectedSockets = this.server.sockets.sockets;
+
+    if (connectedSockets.size === 0) {
+      return;
+    }
+
+    const currentAgentConfigs = await this.centOpsService.getCentOpsConfigurations();
+    const currentAgentMap = new Map(currentAgentConfigs.map((agent) => [agent.id, agent]));
+
+    const deletedAgentIds = new Set(data.deleted.map((agent) => agent.id));
+    const certificateChangedAgentIds = new Set(data.certificateChanged.map((agent) => agent.id));
+
+    for (const [, socket] of connectedSockets.entries()) {
+      await this.validateAndDisconnectSocket(
+        socket,
+        deletedAgentIds,
+        certificateChangedAgentIds,
+        currentAgentMap,
+      );
+    }
+  }
+
+  private async validateAndDisconnectSocket(
+    socket: Socket,
+    deletedAgentIds: Set<string>,
+    certificateChangedAgentIds: Set<string>,
+    currentAgentMap: Map<string, ClientConfigDto>,
+  ): Promise<void> {
+    const agentId = socket.jwtPayload?.sub;
+    const connectionCertificate = socket.authenticationCertificate;
+
+    if (!agentId || !connectionCertificate) {
+      return;
+    }
+
+    let shouldDisconnect = false;
+    let reason = '';
+
+    if (deletedAgentIds.has(agentId)) {
+      shouldDisconnect = true;
+      reason = 'Agent no longer in authorized list';
+    } else if (certificateChangedAgentIds.has(agentId)) {
+      shouldDisconnect = true;
+      reason = 'Agent certificate has been rotated/revoked';
+    } else {
+      // Defensive safety check: Verify agent exists in the fresh configuration from CentOps.
+      // This catches edge cases where an agent might not be in the deleted/certificateChanged arrays
+      // but is also not present in the current authorized configuration (due to data processing bugs
+      // or inconsistencies in the configuration update event).
+      const currentAgentConfig = currentAgentMap.get(agentId);
+      if (!currentAgentConfig) {
+        shouldDisconnect = true;
+        reason = 'Agent not found in current authorized list';
+      }
+    }
+
+    if (shouldDisconnect) {
+      this.logger.warn(
+        `Dropping connection for agent ${agentId} (Socket ID: ${socket.id}): ${reason}`,
+      );
+
+      try {
+        await this.rabbitService.unsubscribe(agentId);
+      } catch (error) {
+        this.logger.error(
+          `Error unsubscribing agent ${agentId} during security disconnect: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+      }
+
+      socket.disconnect(true);
+    }
   }
 
   public async forwardMessageToAgent(
@@ -228,7 +311,7 @@ export class AgentGateway
       return null;
     }
     for (const [, socket] of connectedSockets.entries()) {
-      if (socket.agent?.sub === agentId) {
+      if (socket.jwtPayload?.sub === agentId) {
         return socket;
       }
     }
