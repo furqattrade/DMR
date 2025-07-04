@@ -19,6 +19,15 @@ async function bootstrap(): Promise<void> {
     colors: process.env.LOGGER_COLORS === 'true',
   });
 
+  // FIX: Start MSW server BEFORE creating NestJS app to prevent race condition
+  // Issue: HTTP requests to CentOps were failing because MSW wasn't ready yet
+  // Solution: Initialize MSW server first, then start DMR server
+  const server = setupServer(...handlers);
+  server.listen({
+    onUnhandledRequest: 'bypass',
+  });
+  logger.log('MSW server started - ready to handle HTTP requests');
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     cors: true,
     bufferLogs: true,

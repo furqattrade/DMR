@@ -60,6 +60,9 @@ export class CentOpsService implements OnModuleInit {
       `Cron job '${this.CENT_OPS_JOB_NAME}' scheduled for: ${this.centOpsConfig.cronTime}`,
     );
 
+    // FIX: Perform initial configuration sync on startup to prevent race conditions
+    // Issue: Agents were connecting before CentOps configuration was loaded
+    // Solution: Load configuration immediately during module initialization
     this.syncConfiguration().catch((error) => {
       this.logger.error('Failed to perform initial configuration sync:', error);
     });
@@ -74,18 +77,24 @@ export class CentOpsService implements OnModuleInit {
       (await this.cacheManager.get<ClientConfigDto[]>(this.CENT_OPS_CONFIG_CACHE_KEY)) || [];
 
     if (centOpsConfigs.length === 0) {
+      // FIX: Graceful handling of empty configuration instead of immediate error
+      // Issue: Agents were immediately disconnected when configuration was empty
+      // Solution: Attempt to sync configuration and retry before throwing error
       this.logger.warn('CentOps configuration is empty, attempting to sync configuration...');
 
+      // Attempt to sync configuration immediately if cache is empty
       const syncedConfigs = await this.syncConfiguration();
 
       if (syncedConfigs && syncedConfigs.length > 0) {
         this.logger.log('Configuration synced successfully, retrying client lookup');
         const clientConfig = syncedConfigs.find((config) => config.id === clientId);
+
         if (clientConfig) {
           return clientConfig;
         }
       }
 
+      // If sync failed or client not found, throw error as last resort
       this.logger.error('CentOps configuration is empty after sync attempt');
       throw new BadRequestException('CentOps configuration is empty');
     }
