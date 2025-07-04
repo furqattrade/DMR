@@ -59,6 +59,10 @@ export class CentOpsService implements OnModuleInit {
     this.logger.log(
       `Cron job '${this.CENT_OPS_JOB_NAME}' scheduled for: ${this.centOpsConfig.cronTime}`,
     );
+
+    this.syncConfiguration().catch((error) => {
+      this.logger.error('Failed to perform initial configuration sync:', error);
+    });
   }
 
   async getCentOpsConfigurations(): Promise<ClientConfigDto[]> {
@@ -70,8 +74,19 @@ export class CentOpsService implements OnModuleInit {
       (await this.cacheManager.get<ClientConfigDto[]>(this.CENT_OPS_CONFIG_CACHE_KEY)) || [];
 
     if (centOpsConfigs.length === 0) {
-      this.logger.error('CentOps configuration is empty');
+      this.logger.warn('CentOps configuration is empty, attempting to sync configuration...');
 
+      const syncedConfigs = await this.syncConfiguration();
+
+      if (syncedConfigs && syncedConfigs.length > 0) {
+        this.logger.log('Configuration synced successfully, retrying client lookup');
+        const clientConfig = syncedConfigs.find((config) => config.id === clientId);
+        if (clientConfig) {
+          return clientConfig;
+        }
+      }
+
+      this.logger.error('CentOps configuration is empty after sync attempt');
       throw new BadRequestException('CentOps configuration is empty');
     }
 
@@ -120,12 +135,31 @@ export class CentOpsService implements OnModuleInit {
 
       const difference = this.getDifference(configurations, newConfigurations);
 
-      for (const addedConfiguration of difference.added) {
-        await this.rabbitMQService.setupQueue(addedConfiguration.id);
-      }
-      for (const deletedConfiguration of difference.deleted) {
-        await this.rabbitMQService.deleteQueue(deletedConfiguration.id);
-      }
+      // Setup queues for new agents with graceful error handling
+      const queueSetupPromises = difference.added.map(async (addedConfiguration) => {
+        try {
+          const success = await this.rabbitMQService.setupQueue(addedConfiguration.id);
+          if (!success) {
+            this.logger.warn(
+              `Failed to setup queue for agent ${addedConfiguration.id}, will retry later`,
+            );
+          }
+        } catch (error) {
+          this.logger.error(`Error setting up queue for agent ${addedConfiguration.id}:`, error);
+        }
+      });
+
+      // Delete queues for removed agents
+      const queueDeletionPromises = difference.deleted.map(async (deletedConfiguration) => {
+        try {
+          await this.rabbitMQService.deleteQueue(deletedConfiguration.id);
+        } catch (error) {
+          this.logger.error(`Error deleting queue for agent ${deletedConfiguration.id}:`, error);
+        }
+      });
+
+      // Wait for all queue operations to complete (but don't block on failures)
+      await Promise.allSettled([...queueSetupPromises, ...queueDeletionPromises]);
 
       await this.cacheManager.set(this.CENT_OPS_CONFIG_CACHE_KEY, newConfigurations);
       this.eventEmitter.emit(DmrServerEvent.UPDATED, difference);
