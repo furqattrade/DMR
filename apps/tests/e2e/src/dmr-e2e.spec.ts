@@ -20,7 +20,7 @@ const config = {
 };
 
 // Helper functions
-const waitForService = async (url: string, maxAttempts = 30, delay = 1000) => {
+const waitForService = async (url: string, maxAttempts = 15, delay = 500) => {
   for (let i = 0; i < maxAttempts; i++) {
     try {
       await axios.get(`${url}/v1/health`);
@@ -49,7 +49,7 @@ const getLastReceivedMessage = async () => {
   return response.data;
 };
 
-const waitForMessage = async (expectedId: string, maxAttempts = 30, delay = 1000) => {
+const waitForMessage = async (expectedId: string, maxAttempts = 15, delay = 500) => {
   for (let i = 0; i < maxAttempts; i++) {
     try {
       const message = await getLastReceivedMessage();
@@ -74,7 +74,7 @@ describe('DMR E2E Tests', () => {
       waitForService(config.dmrAgentB),
     ]);
     console.log('All services are ready');
-  }, 60000);
+  }, 30000);
 
   describe('Basic Message Flow', () => {
     it('should send message from External Service A to External Service B through DMR system', async () => {
@@ -95,7 +95,7 @@ describe('DMR E2E Tests', () => {
       expect(receivedMessage.id).toBe(sentMessage.id);
       expect(receivedMessage.recipientId).toBe(config.agentIds.B);
       expect(receivedMessage.payload).toEqual(testPayload);
-    }, 30000);
+    }, 15000);
 
     it('should handle multiple messages in sequence', async () => {
       const messages = [];
@@ -111,7 +111,7 @@ describe('DMR E2E Tests', () => {
         messages.push(message);
 
         // Wait a bit between messages
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 300));
       }
 
       // Verify the last message was received
@@ -119,7 +119,7 @@ describe('DMR E2E Tests', () => {
       const receivedMessage = await waitForMessage(lastMessage.id);
 
       expect(receivedMessage.payload.sequence).toBe(3);
-    }, 45000);
+    }, 20000);
   });
 
   describe('Health Checks', () => {
@@ -173,7 +173,7 @@ describe('DMR E2E Tests', () => {
       const totalTime = endTime - startTime;
 
       expect(receivedMessage).toBeDefined();
-      expect(totalTime).toBeLessThan(10000); // Should complete within 10 seconds
+      expect(totalTime).toBeLessThan(5000); // Should complete within 5 seconds
     });
   });
 });

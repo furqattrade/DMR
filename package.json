@@ -18,6 +18,7 @@
     "test:agent": "nx test dmr-agent",
     "test:server:log": "nx test dmr-server -- --reporter=verbose",
     "test:agent:log": "nx test dmr-agent -- --reporter=verbose",
+    "e2e:server": "nx e2e dmr-server ",
     "e2e:full": "bash scripts/e2e-test.sh",
     "e2e:full:ci": "docker-compose -f docker-compose.e2e.yml up --build --abort-on-container-exit",
     "clean": "rimber dist node_modules/.cache",

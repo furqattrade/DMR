@@ -1,5 +1,54 @@
 import express from 'express';
 
+interface ChatMessage {
+  id: string;
+  chatId: string;
+  content: string;
+  authorTimestamp: string;
+  authorFirstName: string;
+  authorLastName: string;
+  authorRole: string;
+  created: string;
+  preview: string;
+}
+
+interface ChatPayload {
+  chat: {
+    id: string;
+    endUserFirstName: string;
+    endUserLastName: string;
+    endUserId: string;
+    endUserEmail: string;
+    customerSupportDisplayName: string;
+    created: string;
+    endUserOs: string;
+    endUserUrl: string;
+  };
+  messages: ChatMessage[];
+}
+
+interface IncomingMessage {
+  id: string;
+  type: string;
+  payload: ChatPayload | string;
+  timestamp: string;
+  senderId: string;
+  recipientId: string;
+}
+
+interface SimpleMessage {
+  id: string;
+  type: string;
+  payload: string;
+  timestamp: string;
+  senderId: string;
+  recipientId: string;
+}
+
+interface StoredMessage extends SimpleMessage {
+  receivedAt: string;
+}
+
 const host = process.env.HOST ?? 'localhost';
 const port = 3002;
 
@@ -13,16 +62,29 @@ app.use((req, res, next) => {
 });
 
 // Store received messages for verification
-const receivedMessages: any[] = [];
+const receivedMessages: StoredMessage[] = [];
 
 // Endpoint to receive messages from DMR Agent B
 app.post('/api/messages', (request, response) => {
-  const message = request.body;
+  const message = request.body as IncomingMessage;
   console.log('[External B] Received message from DMR Agent B:', message);
+
+  // Extract the actual message content from the payload
+  const simpleMessage: SimpleMessage = {
+    id: message.id,
+    type: message.type,
+    payload:
+      typeof message.payload === 'string'
+        ? message.payload
+        : (message.payload.messages[0]?.content ?? ''),
+    timestamp: message.timestamp,
+    senderId: message.senderId,
+    recipientId: message.recipientId,
+  };
 
   // Store with timestamp
   receivedMessages.push({
-    ...message,
+    ...simpleMessage,
     receivedAt: new Date().toISOString(),
   });
 
