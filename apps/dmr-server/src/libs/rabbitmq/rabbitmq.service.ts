@@ -110,11 +110,23 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     this.schedulerRegistry.addInterval(this.RECONNECT_INTERVAL_NAME, interval);
   }
 
-  async setupQueue(queueName: string, ttl?: number): Promise<boolean> {
+  async setupQueue(queueName: string, ttl?: number, retryAttempts = 3): Promise<boolean> {
     const channel = this.channel;
 
     if (!channel) {
-      this.logger.error(`Cannot setup queue ${queueName}: RabbitMQ channel is not available`);
+      if (retryAttempts > 0) {
+        this.logger.warn(
+          `RabbitMQ channel not available for queue ${queueName}, retrying in 2s... (${retryAttempts} attempts left)`,
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        return this.setupQueue(queueName, ttl, retryAttempts - 1);
+      }
+
+      this.logger.error(
+        `Cannot setup queue ${queueName}: RabbitMQ channel is not available after all retry attempts`,
+      );
       return false;
     }
 
