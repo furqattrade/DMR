@@ -89,10 +89,12 @@ export class AgentGateway
     const originalServerEmit = this.server.emit.bind(this.server);
 
     const serverEmit: Server['emit'] = (event: string, ...arguments_: unknown[]) => {
-      const sockets = this.server.sockets.sockets;
+      const sockets = this.server.sockets?.sockets;
 
-      for (const socket of [...sockets.values()]) {
-        this.metricService.eventsSentTotalCounter.inc({ event, namespace: socket.nsp.name });
+      if (sockets) {
+        for (const socket of [...sockets.values()]) {
+          this.metricService.eventsSentTotalCounter.inc({ event, namespace: socket.nsp.name });
+        }
       }
 
       return originalServerEmit(event, arguments_);
@@ -193,9 +195,9 @@ export class AgentGateway
   }
 
   private async validateActiveConnections(data: CentOpsConfigurationDifference): Promise<void> {
-    const connectedSockets = this.server.sockets.sockets;
+    const connectedSockets = this.server?.sockets?.sockets;
 
-    if (connectedSockets.size === 0) {
+    if (!connectedSockets || connectedSockets.size === 0) {
       return;
     }
 
