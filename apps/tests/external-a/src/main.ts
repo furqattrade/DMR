@@ -1,29 +1,126 @@
+import axios from 'axios';
 import express from 'express';
 import { randomUUID } from 'node:crypto';
-import axios from 'axios';
 
 const host = process.env.HOST ?? 'localhost';
 const port = 3001;
 
 const app = express();
 app.use(express.json());
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  next();
+});
 
-app.post('/api/messages', async (_, response): Promise<void> => {
-  const message = {
-    id: randomUUID(),
-    recipientId: 'a1e45678-12bc-4ef0-9876-def123456789',
-    payload: { hello: 'from agent A' },
-  };
+// Store sent messages for verification
+const sentMessages: any[] = [];
+const receivedMessages: any[] = [];
 
+// Endpoint to receive messages from e2e tests and forward to DMR Agent A
+app.post('/api/messages', async (request, response): Promise<void> => {
   try {
-    await axios.post('http://dmr-agent-a:5001/v1/messages', message);
-    response.status(200).json({ sent: true, message });
+    const incomingMessage = request.body;
+    console.log('[External A] Received message from e2e test:', incomingMessage);
+    // Convert to ExternalServiceMessageDto format
+    const chatId = randomUUID();
+    const messageId = randomUUID();
+    const timestamp = new Date().toISOString();
+    const dmrMessage = {
+      id: incomingMessage.id || randomUUID(),
+      recipientId: incomingMessage.recipientId,
+      timestamp: incomingMessage.timestamp || timestamp,
+      type: 'ChatMessage', // Use MessageType.ChatMessage
+      payload: {
+        chat: {
+          id: chatId,
+          endUserFirstName: 'Test',
+          endUserLastName: 'User',
+          endUserId: 'test-user-123',
+          endUserEmail: 'test@example.com',
+          customerSupportDisplayName: 'E2E Test Support',
+          created: timestamp,
+          endUserOs: 'Test OS',
+          endUserUrl: 'https://test.example.com',
+        },
+        messages: [
+          {
+            id: messageId,
+            chatId: chatId,
+            content:
+              typeof incomingMessage.payload === 'string'
+                ? incomingMessage.payload
+                : JSON.stringify(incomingMessage.payload),
+            authorTimestamp: timestamp,
+            authorFirstName: 'Test',
+            authorLastName: 'User',
+            authorRole: 'EndUser',
+            created: timestamp,
+            preview: 'E2E Test Message',
+          },
+        ],
+      },
+    };
+
+    console.log('[External A] Sending to DMR Agent A:', JSON.stringify(dmrMessage, null, 2));
+
+    // Send to DMR Agent A
+    await axios.post('http://dmr-agent-a:5001/v1/messages', dmrMessage);
+
+    // Store for verification
+    sentMessages.push({
+      original: incomingMessage,
+      dmrFormat: dmrMessage,
+      sentAt: new Date().toISOString(),
+    });
+
+    response.status(200).json({
+      success: true,
+      message: 'Message sent to DMR Agent A',
+      dmrMessage,
+    });
   } catch (error: unknown) {
-    console.error(error);
-    response.status(500).json({ error: 'Failed to send message', details: error });
+    console.error('[External A] Error:', error);
+    if (error instanceof Error) {
+      console.error('[External A] Error message:', error.message);
+      console.error('[External A] Error stack:', error.stack);
+    }
+    response.status(500).json({
+      error: 'Failed to send message',
+      details: error instanceof Error ? error.message : error,
+    });
   }
 });
 
+// Endpoint to receive messages from DMR Agent A (incoming messages)
+app.post('/api/messages/incoming', (request, response) => {
+  const message = request.body;
+  console.log('[External A] Received incoming message from DMR Agent A:', message);
+
+  receivedMessages.push({
+    ...message,
+    receivedAt: new Date().toISOString(),
+  });
+
+  response.status(200).json({ success: true });
+});
+
+// Endpoint to get sent messages (for e2e test verification)
+app.get('/api/messages/sent', (_, response) => {
+  response.status(200).json(sentMessages);
+});
+
+// Endpoint to get received messages (for e2e test verification)
+app.get('/api/messages/received', (_, response) => {
+  response.status(200).json(receivedMessages);
+});
+
+// Health check
+app.get('/health', (_, response) => {
+  response.status(200).json({ status: 'healthy', service: 'external-service-a' });
+});
+
 app.listen(port, host, () => {
-  console.log(`[ ready ] http://${host}:${port}`);
+  console.log(`[External Service A] ready at http://${host}:${port}`);
 });

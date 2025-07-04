@@ -1,0 +1,19 @@
+{
+  "name": "@dmr/external-service-b",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "dev": "ts-node src/main.ts"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "~18.16.9",
+    "typescript": "~5.7.2",
+    "ts-node": "^10.9.0"
+  }
+}

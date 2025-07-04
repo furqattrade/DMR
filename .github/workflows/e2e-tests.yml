@@ -1,0 +1,92 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker images
+        run: |
+          docker-compose -f docker-compose.e2e.yml build --parallel
+
+      - name: Start services
+        run: |
+          docker-compose -f docker-compose.e2e.yml up -d
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for services to be healthy..."
+          timeout 300s bash -c '
+            while ! docker-compose -f docker-compose.e2e.yml ps | grep -q healthy; do
+              echo "Waiting for services..."
+              sleep 5
+            done
+          '
+
+      - name: Show service status
+        run: |
+          docker-compose -f docker-compose.e2e.yml ps
+          docker-compose -f docker-compose.e2e.yml logs --tail=50
+
+      - name: Run E2E tests
+        run: |
+          cd apps/tests/e2e
+          npm install
+          npm test
+        env:
+          EXTERNAL_SERVICE_A_URL: http://localhost:3001
+          EXTERNAL_SERVICE_B_URL: http://localhost:3002
+          DMR_AGENT_A_URL: http://localhost:5010
+          DMR_AGENT_B_URL: http://localhost:5011
+          DMR_SERVER_1_URL: http://localhost:5000
+          RABBITMQ_MANAGEMENT_URL: http://localhost:15672
+          RABBITMQ_USER: user
+          RABBITMQ_PASS: pass
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          echo "=== Service Logs ==="
+          docker-compose -f docker-compose.e2e.yml logs
+          echo "=== Container Status ==="
+          docker-compose -f docker-compose.e2e.yml ps -a
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker-compose -f docker-compose.e2e.yml down --volumes --remove-orphans
+          docker system prune -af --volumes
