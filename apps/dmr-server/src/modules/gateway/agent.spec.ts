@@ -102,6 +102,7 @@ describe('AgentGateway', () => {
 
     const mockSocket: Partial<Socket> = {
       id: id || `socket-${Math.random().toString(36).substring(7)}`,
+      connected: true,
       handshake: {
         auth: { token: token },
         headers: { authorization: token ? `Bearer ${token}` : undefined },
@@ -155,12 +156,7 @@ describe('AgentGateway', () => {
     const mockSocketsMap = new Map<string, Socket>();
 
     serverMock = {
-      sockets: {
-        get sockets() {
-          return mockSocketsMap;
-        },
-        get: vi.fn((id: string) => mockSocketsMap.get(id)),
-      },
+      sockets: mockSocketsMap,
       emit: vi.fn(),
       on: vi.fn(),
       off: vi.fn(),
