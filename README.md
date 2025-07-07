@@ -15,19 +15,19 @@ So the goal is to built a system that can efficiently and securely forward quest
 graph TD
   subgraph Client A cluster
     A1[DMR Agent A]
-    A2[Other Services A]
+    A2[Other Services A]:::grey
     A1 <--> A2
   end
 
   subgraph Central cluster
-    S[DMR Server]:::bold
+    S[DMR Server<br/><i>several instances</i>]:::bold
     MQ[RabbitMQ Cluster]
     CO((CentOps<br/><i>not in scope</i>)):::grey
   end
 
   subgraph Client B cluster
     B1[DMR Agent B]
-    B2[Other Services B]
+    B2[Other Services B]:::grey
     B1 <--> B2
   end
 
@@ -87,6 +87,69 @@ docker compose up -d
 ```
 
 For development purposes, there is also a simplified docker-compose file in the dmr-server directory: [`apps/dmr-server/docker-compose.yml`](apps/dmr-server/docker-compose.yml) which only sets up RabbitMQ for local development.
+
+## Environment Variables
+
+<!-- todo mocked centops? -- OR CREATE TASK -->
+
+Below is a list of all environment variables used by the DMR system, organized by service. Sensible variable values are also specified in the docker-compose file.
+
+### DMR Server variables
+
+| Variable                                      | Description                                                                                                                                                          | Required | Default Value         |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------- |
+| `PORT`                                        | Port on which the DMR server will run                                                                                                                                |          | `5000`                |
+| `ENVIRONMENT`                                 | NodeJS Runtime environment. **Should be set to `production` when deployed to ANY environment, including test environments.**                                         |          | `development`         |
+| `LOGGER_COLORS`                               | Enable colored logs. **Strongly suggest to disable when deployed.**                                                                                                  |          | `true`                |
+| `LOGGER_LOG_LEVELS`                           | Comma-separated log levels to output                                                                                                                                 |          | `error,warn,log`      |
+| `WEB_SOCKET_MAX_DISCONNECTION_DURATION`       | Maximum duration (ms) for DMR Agent WebSocket disconnection. Used by [connection state recovery](https://socket.io/docs/v4/server-options/#connectionstaterecovery). |          | `120000` (2 minutes)  |
+| `CENTOPS_CONFIGURATION_URL`                   | URL for CentOps configuration service. **Should be set to `https://centops.burokratt.com/api/v1/dmr-agent-list` when using CentOps configuration endpoint mock.**    | Yes      |                       |
+| `CENTOPS_CONFIGURATION_CRON_TIME`             | Cron schedule for fetching configuration (agent list) from CentOps                                                                                                   |          | `*/30 * * * *`        |
+| `RABBITMQ_DEFAULT_HOST`                       | Hostname for RabbitMQ connection                                                                                                                                     | Yes      |                       |
+| `RABBITMQ_DEFAULT_PORT`                       | Port for RabbitMQ AMQP connection                                                                                                                                    | Yes      |                       |
+| `RABBITMQ_DEFAULT_MANAGEMENT_UI_URI`          | URI for RabbitMQ management interface                                                                                                                                | Yes      |                       |
+| `RABBITMQ_DEFAULT_USER`                       | Username for RabbitMQ authentication                                                                                                                                 | Yes      |                       |
+| `RABBITMQ_DEFAULT_PASS`                       | Password for RabbitMQ authentication                                                                                                                                 | Yes      |                       |
+| `RABBITMQ_DEFAULT_TTL`                        | Default message TTL (ms)                                                                                                                                             |          | `300000` (5 minutes)  |
+| `RABBITMQ_DEFAULT_DLQ_TTL`                    | TTL (ms) for messages in agent dead letter queues (DLQs)                                                                                                             |          | `86400000` (24 hours) |
+| `RABBITMQ_VALIDATION_FAILURES_TTL`            | TTL (ms) for messages in validation failures queue                                                                                                                   |          | `86400000` (24 hours) |
+| `RABBITMQ_DEFAULT_DEFAULT_RECONNECT_INTERVAL` | Interval (ms) for reconnection attempts from DMR server to RabbitMQ                                                                                                  |          | `5000` (5 seconds)    |
+
+#### CentOps mock variables
+
+The following variables are **required in DMR Server** when using CentOps configuration endpoint mock. These should be removed when CentOps is no longer mocked.
+
+| Variable                       | Description                                                                                                 | Default Value |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------- | ------------- |
+| `MSW_ENABLED`                  | Enables CentOps configuration endpoint mock                                                                 | `true`        |
+| `NODE_TLS_REJECT_UNAUTHORIZED` | Disables TLS certificate trust check, required for CentOps mock                                             | `0`           |
+| `MOCK_DMR_AGENT_A_PUBLIC_KEY`  | Public key for mock Agent A (development/testing). **Should match the private key in agent env variables.** |               |
+| `MOCK_DMR_AGENT_B_PUBLIC_KEY`  | Public key for mock Agent B (development/testing). **Should match the private key in agent env variables.** |               |
+| `MOCK_DMR_AGENT_A_ID`          | UUID for mock Agent A (development/testing). **Should match the ID in agent env variables.**                |               |
+| `MOCK_DMR_AGENT_B_ID`          | UUID for mock Agent B (development/testing). **Should match the ID in agent env variables.**                |               |
+
+### DMR Agent variables
+
+| Variable                           | Description                                                                                                                   | Required | Default Value    |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------- |
+| `PORT`                             | Port on which the DMR agent will run                                                                                          |          | `5001`           |
+| `ENVIRONMENT`                      | NodeJS Runtime environment. **Should be set to `production` when deployed to ANY environment, including test environments.**  |          | `development`    |
+| `LOGGER_COLORS`                    | Enable colored logs. **Strongly suggest to disable when deployed.**                                                           |          | `true`           |
+| `LOGGER_LOG_LEVELS`                | Comma-separated log levels to output                                                                                          |          | `error,warn,log` |
+| `DMR_SERVER_WEBSOCKET_URL`         | URL for connecting to DMR Server via WebSocket                                                                                | Yes      |                  |
+| `WEBSOCKET_RECONNECTION_DELAY`     | Initial delay (ms) for WebSocket reconnection attempts                                                                        |          | `1000`           |
+| `WEBSOCKET_RECONNECTION_DELAY_MAX` | Maximum delay (ms) for WebSocket reconnection attempts                                                                        |          | `5000`           |
+| `AGENT_ID`                         | Unique identifier (UUID) for the agent                                                                                        | Yes      |                  |
+| `AGENT_PRIVATE_KEY`                | RSA private key for message encryption/decryption and DMR Server authentication                                               | Yes      |                  |
+| `OUTGOING_MESSAGE_ENDPOINT`        | HTTP endpoint where decrypted messages will be forwarded inside DMR Agent cluster                                             | Yes      |                  |
+| `MESSAGE_DELIVERY_TIMEOUT_MS`      | Timeout (ms) for forwarding the message to DMR Server. Incoming message endpoint will return 504 if this timeout is exceeded. |          | `2000`           |
+
+### RabbitMQ variables
+
+| Variable                | Description                          | Required |
+| ----------------------- | ------------------------------------ | -------- |
+| `RABBITMQ_DEFAULT_USER` | Username for RabbitMQ authentication | Yes      |
+| `RABBITMQ_DEFAULT_PASS` | Password for RabbitMQ authentication | Yes      |
 
 ## Prometheus
 
@@ -241,8 +304,8 @@ groups:
 
 ### RabbitMQ
 
-- https://www.rabbitmq.com/kubernetes/operator/operator-monitoring
-- https://www.rabbitmq.com/docs/prometheus
+- <https://www.rabbitmq.com/kubernetes/operator/operator-monitoring>
+- <https://www.rabbitmq.com/docs/prometheus>
 
 Suggested metrics:
 
