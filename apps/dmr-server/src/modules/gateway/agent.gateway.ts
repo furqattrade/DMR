@@ -336,22 +336,23 @@ export class AgentGateway
     await this.waitForServerReady();
 
     // Try multiple ways to access the socket
-    let socket = this.server.sockets.sockets?.get(socketId);
+    let socket: Socket | undefined;
 
-    if (!socket) {
-      // Try accessing via connected clients map
-      if ((this.server as any).connected) {
-        socket = (this.server as any).connected[socketId];
+    // Try accessing via connected clients map
+    const serverWithConnected = this.server as unknown as { connected?: Record<string, Socket> };
+    if (serverWithConnected.connected) {
+      socket = serverWithConnected.connected[socketId];
+      if (socket) {
+        this.logger.debug(`Found socket through connected clients map`, socket);
       }
+    }
 
-      // Try iterating through all connected sockets
-      if (!socket && (this.server as any).sockets) {
-        for (const [id, connectedSocket] of (this.server as any).sockets) {
-          if (id === socketId) {
-            socket = connectedSocket;
-            break;
-          }
-        }
+    // Try iterating through all connected sockets
+    const serverWithSockets = this.server as unknown as { sockets?: Map<string, Socket> };
+    if (!socket && serverWithSockets.sockets) {
+      socket = serverWithSockets.sockets.get(socketId);
+      if (socket) {
+        this.logger.debug(`Found socket through sockets map`, socket);
       }
     }
 
