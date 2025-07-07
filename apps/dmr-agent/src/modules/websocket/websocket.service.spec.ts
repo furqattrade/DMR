@@ -72,6 +72,7 @@ describe('WebsocketService', () => {
             url: 'http://localhost:3000',
             namespace: 'namespace',
             messageDeliveryTimeoutMs: 2000,
+            ackTimeout: 10000,
           },
         },
         {

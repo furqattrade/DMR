@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 
 const host = process.env.HOST ?? 'localhost';
 const port = 3001;
+const dmrAgentAUrl = process.env.DMR_AGENT_A_URL ?? 'http://dmr-agent-a:5001';
 
 const app = express();
 app.use(express.json());
@@ -29,6 +30,7 @@ app.post('/api/messages', async (request, response): Promise<void> => {
     const timestamp = new Date().toISOString();
     const dmrMessage = {
       id: incomingMessage.id || randomUUID(),
+      senderId: incomingMessage.senderId,
       recipientId: incomingMessage.recipientId,
       timestamp: incomingMessage.timestamp || timestamp,
       type: 'ChatMessage', // Use MessageType.ChatMessage
@@ -66,7 +68,7 @@ app.post('/api/messages', async (request, response): Promise<void> => {
     console.log('[External A] Sending to DMR Agent A:', JSON.stringify(dmrMessage, null, 2));
 
     // Send to DMR Agent A
-    await axios.post('http://dmr-agent-a:5001/v1/messages', dmrMessage);
+    await axios.post(`${dmrAgentAUrl}/v1/messages`, dmrMessage);
 
     // Store for verification
     sentMessages.push({

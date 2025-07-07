@@ -235,18 +235,52 @@ groups:
 
 ### Testing
 
-- `test`: Run tests for all applications
-- `test:server`: Run tests for DMR server
-- `test:agent`: Run tests for DMR agent
-- `e2e`: Run end-to-end tests for all applications
-- `e2e:server`: Run end-to-end tests for DMR server
-- `e2e:agent`: Run end-to-end tests for DMR agent
+#### Unit Tests
 
-For detailed test output, you can add the `--reporter=verbose` flag to any test command:
+- `test`: Run unit tests for all applications
+- `test:server`: Run unit tests for DMR server
+- `test:agent`: Run unit tests for DMR agent
+- `test:server:log`: Run server tests with verbose output
+- `test:agent:log`: Run agent tests with verbose output
+
+#### End-to-End Tests
+
+- `e2e:full`: Complete E2E test cycle (build, test, cleanup)
+- `e2e:local`: Run E2E tests against running services
+- `e2e:setup`: Start E2E test services
+- `e2e:teardown`: Stop and cleanup E2E test services
+- `e2e:verify`: Verify E2E test setup is working
+- `e2e:ci`: CI-optimized E2E test execution
+- `e2e:server`: Run NX E2E tests for DMR server
+
+#### E2E Testing Quick Start
+
+```bash
+# Verify setup
+npm run e2e:verify
+
+# Option 1: Full automated test (recommended)
+npm run e2e:full
+
+# Option 2: Manual control
+npm run e2e:setup    # Start services
+npm run e2e:local    # Run tests
+npm run e2e:teardown # Cleanup
+
+# Option 3: Development workflow
+npm run e2e:setup    # Start services (leave running)
+npm run e2e:local    # Run tests multiple times
+# ... make changes ...
+npm run e2e:local    # Test again
+npm run e2e:teardown # Cleanup when done
+```
+
+The E2E tests verify complete message flow from External Service A → DMR Agent A → DMR Server → RabbitMQ → DMR Agent B → External Service B.
+
+For detailed test output, you can add the `--reporter=verbose` flag to unit test commands:
 
 ```bash
 pnpm test:server -- --reporter=verbose
-pnpm e2e:server -- --reporter=verbose
 ```
 
 ### Code Quality

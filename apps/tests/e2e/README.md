@@ -47,8 +47,17 @@ External Service A → DMR Agent A → DMR Server → RabbitMQ → DMR Server �
 #### Quick Start
 
 ```bash
-# Run complete e2e test suite
+# Run complete e2e test suite (builds services, runs tests, cleans up)
 pnpm run e2e:full
+
+# Run tests against already running services
+pnpm run e2e:local
+
+# Set up services only
+pnpm run e2e:setup
+
+# Clean up services
+pnpm run e2e:teardown
 ```
 
 #### Manual Steps

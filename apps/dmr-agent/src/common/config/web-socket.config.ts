@@ -10,12 +10,14 @@ const variables = Utils.validateObject(
     namespace: String('/v1/dmr-agent-events'),
     reconnectionDelayMin: Number(process.env.WEBSOCKET_RECONNECTION_DELAY),
     reconnectionDelayMax: Number(process.env.WEBSOCKET_RECONNECTION_DELAY_MAX),
+    ackTimeout: Number(process.env.WEBSOCKET_ACK_TIMEOUT),
   },
   {
     url: Joi.string().uri().required(),
     namespace: Joi.string().default('/v1/dmr-agent-events'),
     reconnectionDelayMin: Joi.number().default(1000),
     reconnectionDelayMax: Joi.number().default(5000),
+    ackTimeout: Joi.number().default(10000),
   },
 );
 

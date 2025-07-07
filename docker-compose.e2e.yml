@@ -35,8 +35,9 @@ services:
       - PORT=5000
       - ENVIRONMENT=development
       - LOGGER_COLORS=false
-      - LOGGER_LOG_LEVELS=error,warn,log
+      - LOGGER_LOG_LEVELS=error,warn,log,debug
       - WEB_SOCKET_MAX_DISCONNECTION_DURATION=300000
+      - WEB_SOCKET_ACK_TIMEOUT=15000
       - CENTOPS_CONFIGURATION_URL=http://localhost:3000/centops/clients
       - CENTOPS_CONFIGURATION_CRON_TIME=*/5 * * * * *
       - RABBITMQ_DEFAULT_HOST=rabbitmq-e2e
@@ -82,6 +83,7 @@ services:
       - LOGGER_COLORS=false
       - LOGGER_LOG_LEVELS=error,warn,log
       - WEB_SOCKET_MAX_DISCONNECTION_DURATION=300000
+      - WEB_SOCKET_ACK_TIMEOUT=15000
       - CENTOPS_CONFIGURATION_URL=http://localhost:3000/centops/clients
       - CENTOPS_CONFIGURATION_CRON_TIME=*/30 * * * * *
       - RABBITMQ_DEFAULT_PORT=5672
@@ -130,6 +132,7 @@ services:
       - DMR_SERVER_WEBSOCKET_URL=http://dmr-server-1:5000
       - WEBSOCKET_RECONNECTION_DELAY=100
       - WEBSOCKET_RECONNECTION_DELAY_MAX=500
+      - WEBSOCKET_ACK_TIMEOUT=15000
       - AGENT_ID=d3b07384-d9a0-4c3f-a4e2-123456789abc
       - OUTGOING_MESSAGE_ENDPOINT=http://external-service-a:3001/api/messages
       - MESSAGE_DELIVERY_TIMEOUT_MS=4000
@@ -167,6 +170,7 @@ services:
       - DMR_SERVER_WEBSOCKET_URL=http://dmr-server-1:5000
       - WEBSOCKET_RECONNECTION_DELAY=100
       - WEBSOCKET_RECONNECTION_DELAY_MAX=500
+      - WEBSOCKET_ACK_TIMEOUT=15000
       - MESSAGE_DELIVERY_TIMEOUT_MS=4000
       - MESSAGE_PROCESSING_CONCURRENCY=2
       - MESSAGE_BATCH_SIZE=5
@@ -196,6 +200,7 @@ services:
     environment:
       - PORT=3001
       - HOST=0.0.0.0
+      - DMR_AGENT_A_URL=http://dmr-agent-a:5001
     networks:
       - dmr-e2e
 
@@ -212,40 +217,6 @@ services:
       - HOST=0.0.0.0
     networks:
       - dmr-e2e
-
-  # E2E Test Runner
-  e2e-tests:
-    build:
-      context: .
-      dockerfile: apps/tests/e2e/Dockerfile
-    container_name: e2e-tests
-    depends_on:
-      dmr-agent-a:
-        condition: service_healthy
-      dmr-agent-b:
-        condition: service_healthy
-      external-service-a:
-        condition: service_started
-      external-service-b:
-        condition: service_started
-    environment:
-      - NODE_ENV=test
-      - RABBITMQ_MANAGEMENT_URL=http://rabbitmq-e2e:15672
-      - RABBITMQ_USER=user
-      - RABBITMQ_PASS=pass
-      - DMR_SERVER_1_URL=http://dmr-server-1:5000
-      - DMR_SERVER_2_URL=http://dmr-server-1:5000
-      - DMR_AGENT_A_URL=http://dmr-agent-a:5001
-      - DMR_AGENT_B_URL=http://dmr-agent-b:5001
-      - EXTERNAL_SERVICE_A_URL=http://external-service-a:3001
-      - EXTERNAL_SERVICE_B_URL=http://external-service-b:3002
-    volumes:
-      - ./apps/tests/e2e:/app
-      - ./libs/shared:/libs/shared
-    networks:
-      - dmr-e2e
-    profiles:
-      - test
 
 networks:
   dmr-e2e:

@@ -1,16 +1,35 @@
 #!/bin/bash
 
-# Full E2E test script with setup and cleanup
+# CI-friendly E2E test script
+# This script is designed to run in CI environments like GitHub Actions
 
 set -e
 
-echo "🚀 Starting DMR E2E Tests (Full Mode)..."
+echo "🚀 Starting DMR E2E Tests (CI Mode)..."
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+
+# CI environment setup
+echo -e "${YELLOW}🔧 Setting up CI environment...${NC}"
+
+# Verify Docker is available
+if ! command -v docker &> /dev/null; then
+    echo -e "${RED}❌ Docker is not available${NC}"
+    exit 1
+fi
+
+# Verify Docker Compose is available
+if ! command -v docker-compose &> /dev/null; then
+    echo -e "${RED}❌ Docker Compose is not available${NC}"
+    exit 1
+fi
+
+echo "Docker version: $(docker --version)"
+echo "Docker Compose version: $(docker-compose --version)"
 
 # Function to cleanup
 cleanup() {
@@ -27,26 +46,32 @@ echo -e "${YELLOW}🔨 Building and starting services...${NC}"
 docker-compose -f docker-compose.e2e.yml build
 docker-compose -f docker-compose.e2e.yml up -d
 
-# Wait for services to be healthy
+# Wait for services to be healthy with more aggressive checking
 echo -e "${YELLOW}⏳ Waiting for services to be ready...${NC}"
-timeout=300
+timeout=600  # 10 minutes timeout for CI
 counter=0
+check_interval=10
 
 while [ $counter -lt $timeout ]; do
+    # Check if services are healthy using a simpler approach
     healthy_services=$(docker-compose -f docker-compose.e2e.yml ps | grep -c "healthy" || echo "0")
+    total_services=$(docker-compose -f docker-compose.e2e.yml ps | grep -c "dmr-\|external-service\|rabbitmq" || echo "0")
     
-    if [ "$healthy_services" -ge 5 ]; then
-        echo -e "${GREEN}✅ All services are healthy!${NC}"
+    echo "Healthy services: $healthy_services / $total_services"
+    
+    if [ "$healthy_services" -ge 5 ]; then  # Expecting at least 5 healthy services
+        echo -e "${GREEN}✅ All critical services are healthy!${NC}"
         break
     fi
     
-    echo "Waiting for services... ($counter/$timeout)"
-    sleep 5
-    counter=$((counter + 5))
+    echo "Waiting for services... ($counter/$timeout seconds)"
+    sleep $check_interval
+    counter=$((counter + check_interval))
 done
 
 if [ $counter -ge $timeout ]; then
     echo -e "${RED}❌ Services failed to start within timeout${NC}"
+    echo -e "${YELLOW}📋 Service logs:${NC}"
     docker-compose -f docker-compose.e2e.yml logs --tail=100
     exit 1
 fi
@@ -55,11 +80,13 @@ fi
 echo -e "${YELLOW}📊 Service Status:${NC}"
 docker-compose -f docker-compose.e2e.yml ps
 
+# Install dependencies for e2e tests
+echo -e "${YELLOW}📦 Installing E2E test dependencies...${NC}"
+cd apps/tests/e2e
+npm ci
+
 # Run the tests with environment variables
 echo -e "${YELLOW}🧪 Running E2E Tests...${NC}"
-cd apps/tests/e2e
-
-# Set environment variables and run tests
 NODE_ENV=test \
 RABBITMQ_MANAGEMENT_URL=http://localhost:15672 \
 RABBITMQ_USER=user \

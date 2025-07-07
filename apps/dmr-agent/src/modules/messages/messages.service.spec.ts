@@ -16,7 +16,7 @@ import * as classTransformer from 'class-transformer';
 import * as classValidator from 'class-validator';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { agentConfig, AgentConfig } from '../../common/config';
+import { agentConfig, AgentConfig, webSocketConfig } from '../../common/config';
 import { MetricService } from '../../libs/metrics';
 import { WebsocketService } from '../websocket/websocket.service';
 import { MessagesService } from './messages.service';
@@ -88,6 +88,16 @@ describe('MessageService', () => {
           useValue: {
             id: 'test-agent',
             privateKey: 'test-private-key',
+          },
+        },
+        {
+          provide: webSocketConfig.KEY,
+          useValue: {
+            reconnectionDelayMin: 1000,
+            reconnectionDelayMax: 5000,
+            url: 'http://localhost:3000',
+            namespace: 'namespace',
+            ackTimeout: 10000,
           },
         },
         {
@@ -214,6 +224,7 @@ describe('MessageService', () => {
 
       const message: ExternalServiceMessageDto = {
         id: 'test-message-id',
+        senderId: 'test-sender-id',
         recipientId: mockRecipient.id,
         timestamp: '2023-01-01T12:00:00.000Z',
         type: MessageType.ChatMessage,
@@ -252,6 +263,7 @@ describe('MessageService', () => {
 
       const message: ExternalServiceMessageDto = {
         id: 'test-message-id',
+        senderId: 'test-sender-id',
         recipientId: mockRecipient.id,
         timestamp: '2023-01-01T12:00:00.000Z',
         type: MessageType.ChatMessage,
@@ -268,6 +280,7 @@ describe('MessageService', () => {
 
       const message: ExternalServiceMessageDto = {
         id: 'test-message-id',
+        senderId: 'test-sender-id',
         recipientId: 'invalid-recipient-id',
         timestamp: '2023-01-01T12:00:00.000Z',
         type: MessageType.ChatMessage,
@@ -290,6 +303,7 @@ describe('MessageService', () => {
 
       const message: ExternalServiceMessageDto = {
         id: 'test-message-id',
+        senderId: 'test-sender-id',
         recipientId: 'recipient-id',
         timestamp: '2023-01-01T12:00:00.000Z',
         type: MessageType.ChatMessage,
@@ -413,6 +427,7 @@ describe('MessageService', () => {
   describe('sendEncryptedMessageToServer', () => {
     const mockMessage: ExternalServiceMessageDto = {
       id: 'test-message-id',
+      senderId: 'test-sender-id',
       recipientId: 'recipient-id',
       timestamp: '2023-01-01T12:00:00.000Z',
       type: MessageType.ChatMessage,
@@ -638,6 +653,7 @@ describe('MessageService', () => {
     it('should handle complex message payloads', async () => {
       const complexMessage: ExternalServiceMessageDto = {
         id: 'complex-message-id',
+        senderId: 'test-sender-id',
         recipientId: 'recipient-123',
         timestamp: '2023-01-01T12:00:00.000Z',
         type: MessageType.ChatMessage,
@@ -902,6 +918,7 @@ describe('MessageService', () => {
 
       const message: ExternalServiceMessageDto = {
         id: 'test-message-id',
+        senderId: 'test-sender-id',
         recipientId: mockRecipient.id,
         timestamp: '2023-01-01T12:00:00.000Z',
         type: MessageType.ChatMessage,
