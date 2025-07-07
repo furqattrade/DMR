@@ -169,19 +169,16 @@ export class AgentGateway
         return;
       }
 
-      // Check for existing connections using our registry
       const agentsMap = await this.getConnectedAgentsMap();
       const existingSocketId = agentsMap.get(connectionData.jwtPayload.sub);
       if (existingSocketId && existingSocketId !== client.id) {
         this.logger.log(
           `Dropping existing connection for agent ${connectionData.jwtPayload.sub} (Socket ID: ${existingSocketId}) in favor of new connection (Socket ID: ${client.id})`,
         );
-        // Disconnect the existing socket using Socket.IO room functionality
         this.server.to(existingSocketId).disconnectSockets(true);
         await this.rabbitService.unsubscribe(connectionData.jwtPayload.sub);
       }
 
-      // Add to our socket registry
       await this.setConnectedAgent(connectionData.jwtPayload.sub, client.id);
       this.logger.debug(`Agent ${connectionData.jwtPayload.sub} added to socket registry`);
 
@@ -236,7 +233,6 @@ export class AgentGateway
   }
 
   private async validateActiveConnections(data: CentOpsConfigurationDifference): Promise<void> {
-    // Use our socket registry instead of trying to access Socket.IO's internal collection
     const agentsMap = await this.getConnectedAgentsMap();
 
     if (agentsMap.size === 0) {
@@ -249,7 +245,7 @@ export class AgentGateway
     const deletedAgentIds = new Set(data.deleted.map((agent) => agent.id));
     const certificateChangedAgentIds = new Set(data.certificateChanged.map((agent) => agent.id));
 
-    // Validate each connected agent
+    // Validating each connected agent
     for (const [agentId] of agentsMap.entries()) {
       await this.validateAndDisconnectAgentById(
         agentId,
@@ -295,7 +291,7 @@ export class AgentGateway
         );
       }
 
-      // Disconnect the agent by finding and disconnecting their socket
+      // Disconnecting the agent by finding and disconnecting their socket
       await this.disconnectAgentById(agentId);
     }
   }

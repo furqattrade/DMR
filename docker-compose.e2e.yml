@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # RabbitMQ for message queuing
   rabbitmq-e2e:
     image: rabbitmq:management
     container_name: dmr-rabbitmq-e2e
@@ -20,7 +19,6 @@ services:
     networks:
       - dmr-e2e
 
-  # Primary DMR Server
   dmr-server-1:
     build:
       context: .
@@ -66,7 +64,6 @@ services:
     networks:
       - dmr-e2e
 
-  # Secondary DMR Server for multi-server testing
   dmr-server-2:
     build:
       context: .
@@ -113,7 +110,6 @@ services:
     networks:
       - dmr-e2e
 
-  # DMR Agent A (connected to server 1)
   dmr-agent-a:
     build:
       context: .
@@ -151,7 +147,6 @@ services:
     networks:
       - dmr-e2e
 
-  # DMR Agent B (connected to server 1)
   dmr-agent-b:
     build:
       context: .
@@ -189,7 +184,6 @@ services:
     networks:
       - dmr-e2e
 
-  # External Service A (sender)
   external-service-a:
     build:
       context: .
@@ -204,7 +198,6 @@ services:
     networks:
       - dmr-e2e
 
-  # External Service B (receiver)
   external-service-b:
     build:
       context: .
