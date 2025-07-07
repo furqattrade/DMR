@@ -68,10 +68,21 @@ export class AgentGateway
   ) {}
 
   private async getConnectedAgentsMap(): Promise<Map<string, string>> {
-    const agentsMap = await this.cacheManager.get<Map<string, string>>(
+    const agentsMap = await this.cacheManager.get<Map<string, string> | Record<string, string>>(
       this.CONNECTED_AGENTS_CACHE_KEY,
     );
-    return agentsMap || new Map<string, string>();
+
+    if (!agentsMap) {
+      return new Map<string, string>();
+    }
+
+    // Handle case where cache returns plain object instead of Map
+    if (agentsMap instanceof Map) {
+      return agentsMap;
+    }
+
+    // Convert plain object to Map
+    return new Map(Object.entries(agentsMap));
   }
 
   private async setConnectedAgent(agentId: string, socketId: string): Promise<void> {
@@ -84,6 +95,23 @@ export class AgentGateway
     const agentsMap = await this.getConnectedAgentsMap();
     agentsMap.delete(agentId);
     await this.cacheManager.set(this.CONNECTED_AGENTS_CACHE_KEY, agentsMap);
+  }
+
+  private async waitForServerReady(): Promise<void> {
+    if (this.server?.sockets) {
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
+      const checkServer = () => {
+        if (this.server?.sockets) {
+          resolve();
+        } else {
+          setTimeout(checkServer, 50);
+        }
+      };
+      checkServer();
+    });
   }
 
   onModuleInit() {
@@ -112,10 +140,10 @@ export class AgentGateway
     const originalServerEmit = this.server.emit.bind(this.server);
 
     const serverEmit: Server['emit'] = (event: string, ...arguments_: unknown[]) => {
-      const sockets = this.server?.sockets?.sockets;
+      const namespace = this.server?.sockets;
 
-      if (sockets) {
-        for (const socket of [...sockets.values()]) {
+      if (namespace?.sockets) {
+        for (const socket of [...namespace.sockets.values()]) {
           this.metricService.eventsSentTotalCounter.inc({ event, namespace: socket.nsp.name });
         }
       }
@@ -169,16 +197,19 @@ export class AgentGateway
         return;
       }
 
+      // Check for existing connections using our registry
       const agentsMap = await this.getConnectedAgentsMap();
       const existingSocketId = agentsMap.get(connectionData.jwtPayload.sub);
       if (existingSocketId && existingSocketId !== client.id) {
         this.logger.log(
           `Dropping existing connection for agent ${connectionData.jwtPayload.sub} (Socket ID: ${existingSocketId}) in favor of new connection (Socket ID: ${client.id})`,
         );
+        // Disconnect the existing socket using Socket.IO room functionality
         this.server.to(existingSocketId).disconnectSockets(true);
         await this.rabbitService.unsubscribe(connectionData.jwtPayload.sub);
       }
 
+      // Add to our socket registry
       await this.setConnectedAgent(connectionData.jwtPayload.sub, client.id);
       this.logger.debug(`Agent ${connectionData.jwtPayload.sub} added to socket registry`);
 
@@ -233,6 +264,7 @@ export class AgentGateway
   }
 
   private async validateActiveConnections(data: CentOpsConfigurationDifference): Promise<void> {
+    // Use our socket registry instead of trying to access Socket.IO's internal collection
     const agentsMap = await this.getConnectedAgentsMap();
 
     if (agentsMap.size === 0) {
@@ -245,7 +277,7 @@ export class AgentGateway
     const deletedAgentIds = new Set(data.deleted.map((agent) => agent.id));
     const certificateChangedAgentIds = new Set(data.certificateChanged.map((agent) => agent.id));
 
-    // Validating each connected agent
+    // Validate each connected agent
     for (const [agentId] of agentsMap.entries()) {
       await this.validateAndDisconnectAgentById(
         agentId,
@@ -291,7 +323,7 @@ export class AgentGateway
         );
       }
 
-      // Disconnecting the agent by finding and disconnecting their socket
+      // Disconnect the agent by finding and disconnecting their socket
       await this.disconnectAgentById(agentId);
     }
   }
@@ -299,13 +331,37 @@ export class AgentGateway
   private async findSocketByAgentId(agentId: string): Promise<Socket | null> {
     const agentsMap = await this.getConnectedAgentsMap();
     const socketId = agentsMap.get(agentId);
+    if (!socketId) return null;
 
-    if (!socketId) {
-      return null;
+    await this.waitForServerReady();
+
+    // Try multiple ways to access the socket
+    let socket = this.server.sockets.sockets?.get(socketId);
+
+    if (!socket) {
+      // Try accessing via connected clients map
+      if ((this.server as any).connected) {
+        socket = (this.server as any).connected[socketId];
+      }
+
+      // Try iterating through all connected sockets
+      if (!socket && (this.server as any).sockets) {
+        for (const [id, connectedSocket] of (this.server as any).sockets) {
+          if (id === socketId) {
+            socket = connectedSocket;
+            break;
+          }
+        }
+      }
     }
 
-    const sockets = this.server.sockets.sockets;
-    return sockets.get(socketId) || null;
+    if (socket?.connected) {
+      return socket;
+    }
+
+    // Socket no longer exists or is disconnected, clean up cache
+    await this.removeConnectedAgent(agentId);
+    return null;
   }
 
   private async disconnectAgentById(agentId: string): Promise<void> {
