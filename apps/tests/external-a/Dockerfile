@@ -2,19 +2,22 @@ FROM node:22.16.0-alpine
 
 WORKDIR /app
 
+RUN corepack enable pnpm
+
 # Copy package files
-COPY apps/tests/external-a/package.json ./
-COPY apps/tests/external-a/tsconfig*.json ./
+COPY package.json pnpm-lock.yaml ./
+COPY nx.json tsconfig.base.json ./
+
+# Copy project files
+COPY apps/tests/external-a ./apps/tests/external-a
+COPY libs ./libs
 
 # Install dependencies
-RUN npm install
-
-# Copy source code
-COPY apps/tests/external-a/src ./src
+RUN pnpm install --frozen-lockfile
 
 # Build the application
-RUN npm run build
+RUN pnpm nx build external-a
 
-EXPOSE 3001
+EXPOSE 8073
 
-CMD ["npm", "start"] 
+CMD ["node", "dist/apps/tests/external-a/main.js"] 

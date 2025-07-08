@@ -1,12 +1,12 @@
 import {
-  AgentEventNames,
-  ClientConfigDto,
-  ExternalServiceMessageDto,
-  IAgent,
-  MessageType,
-  SocketAckStatus,
-  Utils,
-  ValidationErrorType,
+    AgentEventNames,
+    ClientConfigDto,
+    ExternalServiceMessageDto,
+    IAgent,
+    MessageType,
+    SocketAckStatus,
+    Utils,
+    ValidationErrorType,
 } from '@dmr/shared';
 import { HttpService } from '@nestjs/axios';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -96,7 +96,7 @@ describe('MessageService', () => {
           useValue: {
             reconnectionDelayMin: 1000,
             reconnectionDelayMax: 5000,
-            url: 'http://localhost:3000',
+            url: 'http://localhost:8075',
             namespace: 'namespace',
             ackTimeout: 10000,
           },

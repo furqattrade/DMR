@@ -46,6 +46,8 @@ External Service A → DMR Agent A → DMR Server → RabbitMQ → DMR Server �
 
 #### Quick Start
 
+All commands below must be run from the repository root:
+
 ```bash
 # Run complete e2e test suite (builds services, runs tests, cleans up)
 pnpm run e2e:full
@@ -71,8 +73,8 @@ docker-compose -f docker-compose.e2e.yml up -d
 
 # 3. Run tests
 cd apps/tests/e2e
-npm install
-npm test
+pnpm install
+pnpm test
 
 # 4. Cleanup
 docker-compose -f docker-compose.e2e.yml down --volumes
@@ -86,7 +88,7 @@ docker-compose -f docker-compose.e2e.yml up -d
 
 # Run tests in watch mode
 cd apps/tests/e2e
-npm run test:watch
+pnpm run test:watch
 
 # Cleanup when done
 docker-compose -f docker-compose.e2e.yml down --volumes
@@ -104,25 +106,50 @@ The tests automatically run in GitHub Actions on:
 
 ### Services Included
 
-- **RabbitMQ**: Message broker (port 15672 for management UI)
-- **DMR Server 1**: Primary message routing server (port 5000)
-- **DMR Agent A**: Connected to DMR Server 1 (port 5010)
-- **DMR Agent B**: Connected to DMR Server 1 (port 5011)
-- **External Service A**: Message sender (port 3001)
-- **External Service B**: Message receiver (port 3002)
+- **RabbitMQ**: Message broker (port 8072 for management UI)
+- **DMR Server 1**: Primary message routing server (port 8075)
+- **DMR Agent A**: Connected to DMR Server 1 (port 8077)
+- **DMR Agent B**: Connected to DMR Server 1 (port 8078)
+- **External Service A**: Message sender (port 8073)
+- **External Service B**: Message receiver (port 8074)
 
-### Environment Variables
+### Environment Variables for Local Testing
 
 ```bash
-EXTERNAL_SERVICE_A_URL=http://localhost:3001
-EXTERNAL_SERVICE_B_URL=http://localhost:3002
-DMR_AGENT_A_URL=http://localhost:5010
-DMR_AGENT_B_URL=http://localhost:5011
-DMR_SERVER_1_URL=http://localhost:5000
-RABBITMQ_MANAGEMENT_URL=http://localhost:15672
-RABBITMQ_USER=user
-RABBITMQ_PASS=pass
+RABBITMQ_MANAGEMENT_URL=http://localhost:8072
+EXTERNAL_SERVICE_A_URL=http://localhost:8073
+EXTERNAL_SERVICE_B_URL=http://localhost:8074
+DMR_SERVER_1_URL=http://localhost:8075
 ```
+
+### Health Check Examples
+
+```bash
+curl http://localhost:8075/v1/health  # DMR Server
+```
+
+### Port Mapping Example
+
+```yaml
+ports:
+  - '8075:8075' 
+```
+
+### Example API Calls
+
+```bash
+# Send a message through External Service A
+curl -X POST http://localhost:8073/api/messages \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello World", "recipientId": "agent-b"}'
+
+# Get last message from External Service B
+curl http://localhost:8074/api/messages/last
+```
+
+### Health Check Endpoints
+
+- DMR Server: http://localhost:8075/v1/health
 
 ## Test Configuration
 
@@ -161,9 +188,9 @@ docker-compose -f docker-compose.e2e.yml build --no-cache
 docker-compose -f docker-compose.e2e.yml ps
 
 # Verify service endpoints
-curl http://localhost:5000/v1/health  # DMR Server
-curl http://localhost:5010/v1/health  # DMR Agent A
-curl http://localhost:5011/v1/health  # DMR Agent B
+curl http://localhost:8075/v1/health  # DMR Server
+curl http://localhost:8077/v1/health  # DMR Agent A
+curl http://localhost:8078/v1/health  # DMR Agent B
 ```
 
 #### Port Conflicts
@@ -172,7 +199,7 @@ If you encounter port conflicts, modify the ports in `docker-compose.e2e.yml`:
 
 ```yaml
 ports:
-  - '5000:5000' # Change first port if needed
+  - '8075:8075'
 ```
 
 ### Debugging
@@ -192,7 +219,7 @@ environment:
 
 ```bash
 # Send test message manually
-curl -X POST http://localhost:3001/api/messages \
+curl -X POST http://localhost:8073/api/messages \
   -H "Content-Type: application/json" \
   -d '{
     "recipientId": "a1e45678-12bc-4ef0-9876-def123456789",
@@ -200,7 +227,7 @@ curl -X POST http://localhost:3001/api/messages \
   }'
 
 # Check received message
-curl http://localhost:3002/api/messages/last
+curl http://localhost:8074/api/messages/last
 ```
 
 ## Advanced Scenarios
@@ -248,12 +275,12 @@ When adding new tests:
 
 ### RabbitMQ Management
 
-- URL: http://localhost:15672
+- URL: http://localhost:8071
 - Username: `user`
 - Password: `pass`
 
 ### Service Health Endpoints
 
-- DMR Server: http://localhost:5000/v1/health
-- DMR Agent A: http://localhost:5010/v1/health
-- DMR Agent B: http://localhost:5011/v1/health
+- DMR Server: http://localhost:8075/v1/health
+- DMR Agent A: http://localhost:8077/v1/health
+- DMR Agent B: http://localhost:8078/v1/health

@@ -162,7 +162,7 @@ Below is a list of all environment variables used by the DMR system, organized b
 
 | Variable                                      | Description                                                                                                                                                          | Required | Default Value         |
 | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------- |
-| `PORT`                                        | Port on which the DMR Server will run                                                                                                                                |          | `5000`                |
+| `PORT`                                        | Port on which the DMR Server will run                                                                                                                                |          | `8075`                |
 | `ENVIRONMENT`                                 | NodeJS Runtime environment. **Should be set to `production` when deployed to ANY environment, including test environments.**                                         |          | `development`         |
 | `LOGGER_COLORS`                               | Enable colored logs. **Strongly suggest to disable when deployed.**                                                                                                  |          | `true`                |
 | `LOGGER_LOG_LEVELS`                           | Comma-separated log levels to output                                                                                                                                 |          | `error,warn,log`      |
@@ -197,7 +197,7 @@ CentOps configuration endpoint is currently mocked in DMR Server. The following 
 
 | Variable                           | Description                                                                                                                   | Required | Default Value    |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------- |
-| `PORT`                             | Port on which the DMR agent will run                                                                                          |          | `5001`           |
+| `PORT`                             | Port on which the DMR agent will run                                                                                          |          | `8077`           |
 | `ENVIRONMENT`                      | NodeJS Runtime environment. **Should be set to `production` when deployed to ANY environment, including test environments.**  |          | `development`    |
 | `LOGGER_COLORS`                    | Enable colored logs. **Strongly suggest to disable when deployed.**                                                           |          | `true`           |
 | `LOGGER_LOG_LEVELS`                | Comma-separated log levels to output                                                                                          |          | `error,warn,log` |

@@ -8,7 +8,9 @@
     "dev": "ts-node src/main.ts"
   },
   "dependencies": {
-    "express": "^5.1.0"
+    "@dmr/shared": "workspace:*",
+    "express": "^5.1.0",
+    "reflect-metadata": "^0.2.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",

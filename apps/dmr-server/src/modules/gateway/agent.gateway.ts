@@ -29,6 +29,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { appConfig, AppConfig } from '../../common/config/app.config';
 import { MetricService } from '../../libs/metrics';
 import { RabbitMQService } from '../../libs/rabbitmq';
 import { RabbitMQMessageService } from '../../libs/rabbitmq/rabbitmq-message.service';
@@ -53,9 +54,11 @@ export class AgentGateway
   private readonly logger = new Logger(AgentGateway.name);
   private handleConnectionEvent: (socket: Socket) => void = () => null;
   private readonly CONNECTED_AGENTS_CACHE_KEY = 'DMR_CONNECTED_AGENTS';
-  private readonly ACK_TIMEOUT = Number(process.env.WEB_SOCKET_ACK_TIMEOUT || '10000');
+  private readonly ACK_TIMEOUT: number;
 
   constructor(
+    @Inject(appConfig.KEY)
+    private readonly appConfig: AppConfig,
     @Inject(forwardRef(() => RabbitMQService))
     private readonly rabbitService: RabbitMQService,
     @Inject(forwardRef(() => RabbitMQMessageService))
@@ -65,7 +68,9 @@ export class AgentGateway
     private readonly centOpsService: CentOpsService,
     private readonly metricService: MetricService,
     private readonly authService: AuthService,
-  ) {}
+  ) {
+    this.ACK_TIMEOUT = this.appConfig.messageDeliveryTimeoutMs;
+  }
 
   private async getConnectedAgentsMap(): Promise<Map<string, string>> {
     const agentsMap = await this.cacheManager.get<Map<string, string> | Record<string, string>>(

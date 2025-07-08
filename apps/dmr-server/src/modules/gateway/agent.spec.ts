@@ -11,6 +11,7 @@ import { BadRequestException, Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Server, Socket } from 'socket.io';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { appConfig } from '../../common/config';
 import { MetricService } from '../../libs/metrics';
 import { RabbitMQService } from '../../libs/rabbitmq';
 import { RabbitMQMessageService } from '../../libs/rabbitmq/rabbitmq-message.service';
@@ -84,6 +85,12 @@ const mockCacheManager = {
   reset: vi.fn(),
 };
 
+const mockAppConfig = {
+  webSocketMaxDisconnectionDuration: 120000,
+  webSocketAckTimeout: 10000,
+  messageDeliveryTimeoutMs: 10000,  // Changed from 2000 to match expected value
+};
+
 describe('AgentGateway', () => {
   let gateway: AgentGateway;
   let authService: AuthService;
@@ -143,6 +150,7 @@ describe('AgentGateway', () => {
         { provide: MetricService, useValue: mockMetricService },
         { provide: CentOpsService, useValue: mockCentOpsService },
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
+        { provide: appConfig.KEY, useValue: mockAppConfig },
       ],
     }).compile();
 

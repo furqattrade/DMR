@@ -258,7 +258,7 @@ export class MessagesService implements OnModuleInit {
 
   async sendEncryptedMessageToServer(message: ExternalServiceMessageDto): Promise<void> {
     this.logger.debug(
-      `[DEBUG] Starting sendEncryptedMessageToServer with message: ${JSON.stringify(message, null, 2)}`,
+      ` Starting sendEncryptedMessageToServer with message: ${JSON.stringify(message, null, 2)}`,
     );
 
     const encryptedMessage = await this.encryptMessagePayloadFromExternalService(message);
@@ -269,7 +269,7 @@ export class MessagesService implements OnModuleInit {
     }
 
     this.logger.log(`Message encrypted successfully`);
-    this.logger.debug(`[DEBUG] Encrypted message: ${JSON.stringify(encryptedMessage, null, 2)}`);
+    this.logger.debug(` Encrypted message: ${JSON.stringify(encryptedMessage, null, 2)}`);
 
     if (!this.websocketService.isConnected()) {
       this.logger.error('WebSocket service is not connected to DMR server.');
@@ -288,12 +288,12 @@ export class MessagesService implements OnModuleInit {
     }
 
     try {
-      this.logger.debug(`[DEBUG] Sending message to DMR server via WebSocket`);
+      this.logger.debug(`Sending message to DMR server via WebSocket`);
       const ack = (await socket
         .timeout(this.webSocketConfig.ackTimeout)
         .emitWithAck(AgentEventNames.MESSAGE_TO_DMR_SERVER, encryptedMessage)) as SocketAckResponse;
 
-      this.logger.debug(`[DEBUG] Received ACK from DMR server: ${JSON.stringify(ack, null, 2)}`);
+      this.logger.debug(`Received ACK from DMR server: ${JSON.stringify(ack, null, 2)}`);
 
       if (ack.status === SocketAckStatus.ERROR) {
         this.logger.error(ack.error);
@@ -305,8 +305,8 @@ export class MessagesService implements OnModuleInit {
       const message =
         error instanceof Error ? error.message : 'Unexpected error sending message to DMR Server';
 
-      this.logger.error(`[DEBUG] Error in sendEncryptedMessageToServer: ${message}`);
-      this.logger.error(`[DEBUG] Error details: ${JSON.stringify(error, null, 2)}`);
+      this.logger.error(`Error in sendEncryptedMessageToServer: ${message}`);
+      this.logger.error(` Error details: ${JSON.stringify(error, null, 2)}`);
 
       if (error instanceof GatewayTimeoutException || error instanceof BadGatewayException) {
         throw error;
@@ -320,19 +320,17 @@ export class MessagesService implements OnModuleInit {
   async encryptMessagePayloadFromExternalService(
     message: ExternalServiceMessageDto,
   ): Promise<AgentEncryptedMessageDto | null> {
-    this.logger.debug(
-      `[DEBUG] Starting encryption for message: ${JSON.stringify(message, null, 2)}`,
-    );
+    this.logger.debug(`Starting encryption for message: ${JSON.stringify(message, null, 2)}`);
 
     try {
       const recipient = await this.getAgentById(message.recipientId);
 
       if (!recipient) {
-        this.logger.error(`[DEBUG] Recipient info not found for ID: ${message.recipientId}`);
+        this.logger.error(`Recipient info not found for ID: ${message.recipientId}`);
         return null;
       }
 
-      this.logger.debug(`[DEBUG] Found recipient: ${JSON.stringify(recipient, null, 2)}`);
+      this.logger.debug(`Found recipient: ${JSON.stringify(recipient, null, 2)}`);
 
       const encryptedPayload = await Utils.encryptPayload(
         message.payload,
@@ -340,7 +338,7 @@ export class MessagesService implements OnModuleInit {
         recipient.authenticationCertificate,
       );
 
-      this.logger.debug(`[DEBUG] Payload encrypted successfully`);
+      this.logger.debug(`Payload encrypted successfully`);
 
       const encryptedMessage: AgentEncryptedMessageDto = {
         id: message.id, // Preserve the original message ID
@@ -351,17 +349,13 @@ export class MessagesService implements OnModuleInit {
         timestamp: message.timestamp,
       };
 
-      this.logger.debug(
-        `[DEBUG] Created encrypted message: ${JSON.stringify(encryptedMessage, null, 2)}`,
-      );
+      this.logger.debug(`Created encrypted message: ${JSON.stringify(encryptedMessage, null, 2)}`);
 
       return encryptedMessage;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
-      this.logger.error(`[DEBUG] Error encrypting message: ${errorMessage}`);
-      this.logger.error(
-        `[DEBUG] Error stack: ${error instanceof Error ? error.stack : 'No stack'}`,
-      );
+      this.logger.error(`Error encrypting message: ${errorMessage}`);
+      this.logger.error(`Error stack: ${error instanceof Error ? error.stack : 'No stack'}`);
       return null;
     }
   }

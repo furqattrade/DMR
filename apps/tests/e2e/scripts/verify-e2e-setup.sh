@@ -16,13 +16,13 @@ NC='\033[0m' # No Color
 echo -e "${YELLOW}📋 Checking required files...${NC}"
 
 required_files=(
-    "docker-compose.e2e.yml"
-    "apps/tests/e2e/package.json"
-    "apps/tests/e2e/src/advanced-scenarios.e2e-spec.ts"
-    "scripts/e2e-test.sh"
-    "scripts/e2e-test-local.sh"
-    "scripts/e2e-test-ci.sh"
-    ".github/workflows/e2e-tests.yml"
+    "../../../docker-compose.e2e.yml"
+    "../package.json"
+    "../src/advanced-scenarios.e2e-spec.ts"
+    "e2e-test.sh"
+    "e2e-test-local.sh"
+    "e2e-test-ci.sh"
+    "../../../.github/workflows/e2e-tests.yml"
 )
 
 for file in "${required_files[@]}"; do
@@ -50,7 +50,7 @@ else
     exit 1
 fi
 
-# Check if Node.js and npm are available
+# Check if Node.js and pnpm are available
 echo -e "\n${YELLOW}📦 Checking Node.js environment...${NC}"
 if command -v node &> /dev/null; then
     echo -e "✅ Node.js: $(node --version)"
@@ -59,19 +59,19 @@ else
     exit 1
 fi
 
-if command -v npm &> /dev/null; then
-    echo -e "✅ npm: $(npm --version)"
+if command -v pnpm &> /dev/null; then
+    echo -e "✅ pnpm: $(pnpm --version)"
 else
-    echo -e "${RED}❌ npm not found${NC}"
+    echo -e "${RED}❌ pnpm not found${NC}"
     exit 1
 fi
 
 # Check if scripts are executable
 echo -e "\n${YELLOW}🔧 Checking script permissions...${NC}"
 scripts=(
-    "scripts/e2e-test.sh"
-    "scripts/e2e-test-local.sh"
-    "scripts/e2e-test-ci.sh"
+    "e2e-test.sh"
+    "e2e-test-local.sh"
+    "e2e-test-ci.sh"
 )
 
 for script in "${scripts[@]}"; do
@@ -85,7 +85,7 @@ for script in "${scripts[@]}"; do
 done
 
 # Validate package.json scripts
-echo -e "\n${YELLOW}📜 Checking npm scripts...${NC}"
+echo -e "\n${YELLOW}📜 Checking pnpm scripts...${NC}"
 required_scripts=(
     "e2e:local"
     "e2e:setup"
@@ -93,18 +93,19 @@ required_scripts=(
     "e2e:ci"
 )
 
+cd ..
 for script_name in "${required_scripts[@]}"; do
-    if npm run | grep -q "$script_name"; then
-        echo -e "✅ npm run $script_name"
+    if pnpm run | grep -q "$script_name"; then
+        echo -e "✅ pnpm run $script_name"
     else
-        echo -e "${RED}❌ npm run $script_name (missing)${NC}"
+        echo -e "${RED}❌ pnpm run $script_name (missing)${NC}"
         exit 1
     fi
 done
 
 # Test Docker Compose file syntax
 echo -e "\n${YELLOW}🔍 Validating Docker Compose syntax...${NC}"
-if docker-compose -f docker-compose.e2e.yml config > /dev/null 2>&1; then
+if docker-compose -f ../../../docker-compose.e2e.yml config > /dev/null 2>&1; then
     echo -e "✅ docker-compose.e2e.yml syntax is valid"
 else
     echo -e "${RED}❌ docker-compose.e2e.yml has syntax errors${NC}"
@@ -113,7 +114,7 @@ fi
 
 echo -e "\n${GREEN}🎉 E2E test setup verification completed successfully!${NC}"
 echo -e "\n${YELLOW}Next steps:${NC}"
-echo -e "  • Run ${GREEN}npm run e2e:setup${NC} to start services"
-echo -e "  • Run ${GREEN}npm run e2e:local${NC} to test against running services"
-echo -e "  • Run ${GREEN}npm run e2e:teardown${NC} to clean up"
-echo -e "  • Or run ${GREEN}npm run e2e:full${NC} for complete test cycle"
+echo -e "  • Run ${GREEN}pnpm run e2e:setup${NC} to start services"
+echo -e "  • Run ${GREEN}pnpm run e2e:local${NC} to test against running services"
+echo -e "  • Run ${GREEN}pnpm run e2e:teardown${NC} to clean up"
+echo -e "  • Or run ${GREEN}pnpm run e2e:full${NC} for complete test cycle" 

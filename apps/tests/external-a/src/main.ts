@@ -3,8 +3,8 @@ import express from 'express';
 import { randomUUID } from 'node:crypto';
 
 const host = process.env.HOST ?? 'localhost';
-const port = 3001;
-const dmrAgentAUrl = process.env.DMR_AGENT_A_URL ?? 'http://dmr-agent-a:5001';
+const port = 8073;
+const dmrAgentAUrl = process.env.DMR_AGENT_A_URL ?? 'http://dmr-agent-a:8077';
 
 const app = express();
 app.use(express.json());
