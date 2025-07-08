@@ -1,14 +1,6 @@
 # DMR (Distributed Message Rooms)
 
-## Business case
-
-Currently, there is no way to pass questions from one Bürokratt instance to another. This means that if an end-user asks a question that the local Bürokratt instance cannot answer, he will receive no meaningful reply — even if some other Bürokratt instance could answer it.
-
-An example: a user comes to the Tax Authority web, and asks a question about crime, the Tax Authority instance will not be able to answer it. The Police instance **is able** to answer the question but there is no way to forward it.
-
-So the goal is to built a system that can efficiently and securely forward questions and answers between Bürokratt instances.
-
-## Architecture chart
+## Architectural overview
 
 ```mermaid
 %%{ init: { "theme": "default", "flowchart": { "htmlLabels": true, "curve": "linear" } } }%%
@@ -40,7 +32,13 @@ graph TD
   classDef grey fill:#e0e0e0,stroke:#888,stroke-width:1;
 ```
 
-## Key components
+### Business case
+
+Currently, there is no way to pass questions from one Bürokratt instance to another. This means that if an end-user asks a question that the local Bürokratt instance cannot answer, he will receive no meaningful reply — even if some other Bürokratt instance could answer it.
+
+An example: a user comes to the Tax Authority web, and asks a question about crime, the Tax Authority instance will not be able to answer it. The Police instance **is able** to answer the question but there is no way to forward it.
+
+So the goal is to build a system that can efficiently and securely forward questions and answers between Bürokratt instances.
 
 ### DMR agents
 
@@ -60,7 +58,6 @@ graph TD
 - There can be several instances of DMR server running, depending on load.
 - In the future, can potentially be extended to perform operations — like applying policies — on incoming and outgoing messages.
 - Includes support for Prometheus-based monitoring to help track the real-time health and behavior of the DMR server, specifically around WebSocket activity and message processing.
-- **Metrics endpoint**: [`http://localhost:${PORT}/metrics`](http://localhost:PORT/metrics) — compatible with Prometheus.
 
 ### RabbitMQ
 
@@ -70,11 +67,43 @@ graph TD
 - Supports RabbitMQ clustering for scalability.
 - <https://www.rabbitmq.com/kubernetes/operator/operator-monitoring>
 
+## Local development
+
+### Installation
+
+```bash
+nvm install
+# Install pnpm
+corepack enable pnpm
+corepack up
+pnpm install
+cp .env.example .env
+```
+
+### Running
+
+```bash
+docker compose -f apps/dmr-server/docker-compose.yml up -d # Start RabbitMQ
+pnpm start:server
+pnpm start:agent
+```
+
+### Tests
+
+- `pnpm test:server:log`: Run tests for DMR server
+- `pnpm test:agent:log`: Run tests for DMR agent
+- `pnpm e2e:full`: Run complete end-to-end test cycle (build, test, cleanup). The e2e tests have a fairly complex set up, more details in [e2e Readme](./apps/tests/e2e/README.md).
+
+### Code Quality
+
+- `pnpm lint:check`: Check for ESLint errors and warnings
+- `pnpm format:check`: Check code formatting with Prettier
+
 ## Docker and Docker Compose
 
 The DMR system can be easily deployed using Docker and Docker Compose. The repository includes Docker configurations for all components.
 
-### Docker Files
+### Dockerfiles
 
 - DMR Server Dockerfile: [`apps/dmr-server/Dockerfile`](apps/dmr-server/Dockerfile)
 - DMR Agent Dockerfile: [`apps/dmr-agent/Dockerfile`](apps/dmr-agent/Dockerfile)
@@ -93,8 +122,9 @@ You can test the whole flow of the solution this way:
 
 1. Install [ngrok](https://ngrok.com) and run it with `ngrok http http://localhost:8080`.
 2. Copy the URL provided by ngrok and set it as `OUTGOING_MESSAGE_ENDPOINT` for `dmr-agent-a` in `docker-compose.yml`.
-3. Run `docker compose up -d`.
-4. Run this command to send a message in [the proper format](#sending-messages) through `dmr-agent-b`:
+3. Run a simple server to read messages sent to the ngrok tunnel: `python3 -m http.server 8080`.
+4. Run `docker compose up -d`.
+5. Run this command to send a message in [the proper format](#sending-messages) through `dmr-agent-b`:
 
 ```bash
 curl -X POST http://localhost:8074/v1/messages \
@@ -122,7 +152,7 @@ curl -X POST http://localhost:8074/v1/messages \
   }'
 ```
 
-5. `dmr-agent-b` will forward this message to `dmr-server`. `dmr-server` will add it to the queue for `dmr-agent-a`. `dmr-agent-a` will receive it from `dmr-server` and forward it to the `OUTGOING_MESSAGE_ENDPOINT`. You should see the message in the ngrok tunnel.
+`dmr-agent-b` will forward this message to `dmr-server`. `dmr-server` will add it to the queue for `dmr-agent-a`. `dmr-agent-a` will receive it from `dmr-server` and forward it to the `OUTGOING_MESSAGE_ENDPOINT`. You should see the message sent to the ngrok tunnel.
 
 ## Environment Variables
 
@@ -132,7 +162,7 @@ Below is a list of all environment variables used by the DMR system, organized b
 
 | Variable                                      | Description                                                                                                                                                          | Required | Default Value         |
 | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------- |
-| `PORT`                                        | Port on which the DMR server will run                                                                                                                                |          | `5000`                |
+| `PORT`                                        | Port on which the DMR Server will run                                                                                                                                |          | `5000`                |
 | `ENVIRONMENT`                                 | NodeJS Runtime environment. **Should be set to `production` when deployed to ANY environment, including test environments.**                                         |          | `development`         |
 | `LOGGER_COLORS`                               | Enable colored logs. **Strongly suggest to disable when deployed.**                                                                                                  |          | `true`                |
 | `LOGGER_LOG_LEVELS`                           | Comma-separated log levels to output                                                                                                                                 |          | `error,warn,log`      |
@@ -147,7 +177,8 @@ Below is a list of all environment variables used by the DMR system, organized b
 | `RABBITMQ_DEFAULT_TTL`                        | Default message TTL (ms) for normal agent queues                                                                                                                     |          | `300000` (5 minutes)  |
 | `RABBITMQ_DEFAULT_DLQ_TTL`                    | TTL (ms) for messages in agent dead letter queues (DLQs)                                                                                                             |          | `86400000` (24 hours) |
 | `RABBITMQ_VALIDATION_FAILURES_TTL`            | TTL (ms) for messages in validation failures queue                                                                                                                   |          | `86400000` (24 hours) |
-| `RABBITMQ_DEFAULT_DEFAULT_RECONNECT_INTERVAL` | Interval (ms) for reconnection attempts from DMR server to RabbitMQ                                                                                                  |          | `5000` (5 seconds)    |
+| `RABBITMQ_DEFAULT_DEFAULT_RECONNECT_INTERVAL` | Interval (ms) for reconnection attempts from DMR Server to RabbitMQ                                                                                                  |          | `5000` (5 seconds)    |
+| `MESSAGE_DELIVERY_TIMEOUT_MS`                 | Timeout (ms) for forwarding outgoing messages to DMR Agent.                                                                                                          |          | `2000`                |
 
 #### CentOps mock
 
@@ -241,7 +272,7 @@ Messages endpoint supports versioning. The `v1` version message JSON structure i
 }
 ```
 
-## RabbitMQ
+## RabbitMQ details
 
 ### Queues
 
@@ -279,7 +310,9 @@ Can be set up using [RabbitMQ Cluster Kubernetes Operator](https://www.rabbitmq.
 
 ## Prometheus
 
-### DMR server
+### DMR Server Prometheus
+
+**Metrics endpoint** is `/metrics`.
 
 List of metrics:
 
@@ -346,7 +379,9 @@ groups:
         summary: '95th percentile message routing time exceeds 500ms'
 ```
 
-### DMR agent
+### DMR Agent Prometheus
+
+**Metrics endpoint** is `/metrics`.
 
 List of metrics:
 
@@ -428,7 +463,9 @@ groups:
             More than 1 HTTP error/sec from DMR Agent (4xx or 5xx responses)
 ```
 
-### RabbitMQ
+### RabbitMQ Prometheus
+
+**Metrics endpoint** is `/metrics`.
 
 - <https://www.rabbitmq.com/kubernetes/operator/operator-monitoring>
 - <https://www.rabbitmq.com/docs/prometheus>
@@ -525,46 +562,3 @@ Suggested alert rules:
     summary: "RabbitMQ node low disk space"
     description: "Less than 10 GB disk free. Could lead to message persistence issues."
 ```
-
-## Local development
-
-For development purposes, there is also a simplified docker-compose file in the dmr-server directory: [`apps/dmr-server/docker-compose.yml`](apps/dmr-server/docker-compose.yml) which only sets up RabbitMQ for local development.
-
-### Development
-
-- `start:server`: Start the DMR server in development mode
-- `start:agent`: Start the DMR agent in development mode
-
-### Building
-
-- `build`: Build all applications
-- `build:server`: Build only the DMR server
-- `build:agent`: Build only the DMR agent
-
-### Testing
-
-- `test`: Run tests for all applications
-- `test:server`: Run tests for DMR server
-- `test:agent`: Run tests for DMR agent
-- `e2e`: Run end-to-end tests for all applications
-- `e2e:server`: Run end-to-end tests for DMR server
-- `e2e:agent`: Run end-to-end tests for DMR agent
-
-For detailed test output, you can add the `--reporter=verbose` flag to any test command:
-
-```bash
-pnpm test:server -- --reporter=verbose
-pnpm e2e:server -- --reporter=verbose
-```
-
-### Code Quality
-
-- `lint`: Run ESLint on all files
-- `lint:check`: Check for ESLint errors with zero warnings allowed
-- `lint:fix`: Fix auto-fixable ESLint issues
-- `format`: Format code using Prettier
-- `format:check`: Check code formatting
-
-### Utility
-
-- `clean`: Clean build artifacts and cache
