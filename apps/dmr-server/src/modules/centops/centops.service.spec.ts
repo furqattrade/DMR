@@ -102,10 +102,10 @@ describe('CentOpsService', () => {
       response: [
         {
           id: 'cc5b7b04-ba33-4423-ba26-ccc25441db42',
-          name: '',  
-          authentication_certificate: '',  
-          created_at: 'invalid-date',  
-          updated_at: 'invalid-date',  
+          name: '',
+          authentication_certificate: '',
+          created_at: 'invalid-date',
+          updated_at: 'invalid-date',
         },
       ],
     };
@@ -116,35 +116,39 @@ describe('CentOpsService', () => {
     const response = await service.syncConfiguration();
 
     expect(loggerErrorSpy).toHaveBeenCalledWith(
-      'Validation failed for client configuration: ' + JSON.stringify([{
-        target: {
-          id: 'cc5b7b04-ba33-4423-ba26-ccc25441db42',
-          name: '',
-          authenticationCertificate: '',
-          createdAt: 'invalid-date',
-          updatedAt: 'invalid-date'
-        },
-        value: '',
-        property: 'name',
-        children: [],
-        constraints: {
-          isNotEmpty: 'name should not be empty'
-        }
-      }, {
-        target: {
-          id: 'cc5b7b04-ba33-4423-ba26-ccc25441db42',
-          name: '',
-          authenticationCertificate: '',
-          createdAt: 'invalid-date',
-          updatedAt: 'invalid-date'
-        },
-        value: '',
-        property: 'authenticationCertificate',
-        children: [],
-        constraints: {
-          isNotEmpty: 'authenticationCertificate should not be empty'
-        }
-      }])
+      'Validation failed for client configuration: ' +
+        JSON.stringify([
+          {
+            target: {
+              id: 'cc5b7b04-ba33-4423-ba26-ccc25441db42',
+              name: '',
+              authenticationCertificate: '',
+              createdAt: 'invalid-date',
+              updatedAt: 'invalid-date',
+            },
+            value: '',
+            property: 'name',
+            children: [],
+            constraints: {
+              isNotEmpty: 'name should not be empty',
+            },
+          },
+          {
+            target: {
+              id: 'cc5b7b04-ba33-4423-ba26-ccc25441db42',
+              name: '',
+              authenticationCertificate: '',
+              createdAt: 'invalid-date',
+              updatedAt: 'invalid-date',
+            },
+            value: '',
+            property: 'authenticationCertificate',
+            children: [],
+            constraints: {
+              isNotEmpty: 'authenticationCertificate should not be empty',
+            },
+          },
+        ]),
     );
     expect(response).toHaveLength(0);
   });

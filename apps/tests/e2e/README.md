@@ -138,7 +138,7 @@ curl http://localhost:8075/v1/health  # DMR Server
 
 ```yaml
 ports:
-  - '8075:8075' 
+  - '8075:8075'
 ```
 
 ### Example API Calls
@@ -251,7 +251,7 @@ The setup supports testing with multiple DMR servers:
 ```bash
 # Run multiple test instances
 for i in {1..5}; do
-  npm test &
+  pnpm test &
 done
 wait
 ```

@@ -88,7 +88,7 @@ const mockCacheManager = {
 const mockAppConfig = {
   webSocketMaxDisconnectionDuration: 120000,
   webSocketAckTimeout: 10000,
-  messageDeliveryTimeoutMs: 10000,  // Changed from 2000 to match expected value
+  messageDeliveryTimeoutMs: 10000, // Changed from 2000 to match expected value
 };
 
 describe('AgentGateway', () => {

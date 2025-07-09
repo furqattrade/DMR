@@ -1,12 +1,12 @@
 import {
-    AgentEventNames,
-    ClientConfigDto,
-    ExternalServiceMessageDto,
-    IAgent,
-    MessageType,
-    SocketAckStatus,
-    Utils,
-    ValidationErrorType,
+  AgentEventNames,
+  ClientConfigDto,
+  ExternalServiceMessageDto,
+  IAgent,
+  MessageType,
+  SocketAckStatus,
+  Utils,
+  ValidationErrorType,
 } from '@dmr/shared';
 import { HttpService } from '@nestjs/axios';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';

@@ -95,6 +95,7 @@ pnpm start:agent
 - `pnpm e2e:full`: Run complete end-to-end test cycle (build, test, cleanup)
 
 For detailed information about e2e tests, including:
+
 - Service configurations and ports
 - Environment variables
 - Test scenarios and timeouts

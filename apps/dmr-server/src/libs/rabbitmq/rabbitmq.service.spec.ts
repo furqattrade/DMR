@@ -380,11 +380,10 @@ describe('RabbitMQService', () => {
 
         const loggerSpy = vi.spyOn(Logger.prototype, 'error');
 
-        expect(() => (service as any).forwardMessageToAgent(agentId, mockMessage))
-          .not.toThrow();
+        expect(() => (service as any).forwardMessageToAgent(agentId, mockMessage)).not.toThrow();
 
         expect(loggerSpy).toHaveBeenCalledWith(
-          `Error forwarding message to agent ${agentId}: Unexpected token 'i', "invalid-json" is not valid JSON`
+          `Error forwarding message to agent ${agentId}: Unexpected token 'i', "invalid-json" is not valid JSON`,
         );
       });
     });

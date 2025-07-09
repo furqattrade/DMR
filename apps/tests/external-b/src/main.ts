@@ -21,24 +21,27 @@ const app = express();
 app.use(express.json());
 
 // Endpoint to receive messages from DMR Agent B
-app.post('/api/messages', (
-  request: Request<Record<string, never>, unknown, Record<string, unknown>>,
-  response: Response,
-) => {
-  const message = plainToInstance(ExternalServiceMessageDto, request.body);
-  console.log('[External B] Received message from DMR Agent B:', message);
+app.post(
+  '/api/messages',
+  (
+    request: Request<Record<string, never>, unknown, Record<string, unknown>>,
+    response: Response,
+  ) => {
+    const message = plainToInstance(ExternalServiceMessageDto, request.body);
+    console.log('[External B] Received message from DMR Agent B:', message);
 
-  lastReceivedMessage = {
-    id: message.id,
-    type: message.type,
-    payload: message.payload?.messages?.[0]?.content || '',
-    timestamp: message.timestamp,
-    senderId: message.senderId,
-    recipientId: message.recipientId,
-  };
+    lastReceivedMessage = {
+      id: message.id,
+      type: message.type,
+      payload: message.payload?.messages?.[0]?.content || '',
+      timestamp: message.timestamp,
+      senderId: message.senderId,
+      recipientId: message.recipientId,
+    };
 
-  response.status(200).json({ status: 'ok' });
-});
+    response.status(200).json({ status: 'ok' });
+  },
+);
 
 // Endpoint to get the last received message
 app.get('/api/messages/last', (_request: Request, response: Response) => {
