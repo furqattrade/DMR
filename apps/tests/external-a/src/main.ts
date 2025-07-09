@@ -1,39 +1,51 @@
+import { ExternalServiceMessageDto, MessageType } from '@dmr/shared';
 import axios from 'axios';
+import type { Request, Response } from 'express';
 import express from 'express';
 import { randomUUID } from 'node:crypto';
+import 'reflect-metadata';
 
-const host = process.env.HOST ?? 'localhost';
-const port = 8073;
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8074;
+const host = '0.0.0.0';
 const dmrAgentAUrl = process.env.DMR_AGENT_A_URL ?? 'http://dmr-agent-a:8077';
 
 const app = express();
+
 app.use(express.json());
+
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  console.log(`${req.method} ${req.url}`);
   next();
 });
 
+// Simple message interface for external service
+interface SimpleMessage {
+  id?: string;
+  recipientId: string;
+  timestamp?: string;
+  type: MessageType;
+  payload: string | Record<string, unknown>;
+}
+
 // Store sent messages for verification
-const sentMessages: any[] = [];
-const receivedMessages: any[] = [];
+const sentMessages: SimpleMessage[] = [];
+const receivedMessages: SimpleMessage[] = [];
 
 // Endpoint to receive messages from e2e tests and forward to DMR Agent A
-app.post('/api/messages', async (request, response): Promise<void> => {
+app.post('/api/messages', async (request: Request, response: Response): Promise<void> => {
   try {
-    const incomingMessage = request.body;
+    const incomingMessage = request.body as SimpleMessage;
     console.log('[External A] Received message from e2e test:', incomingMessage);
+
     // Convert to ExternalServiceMessageDto format
     const chatId = randomUUID();
     const messageId = randomUUID();
     const timestamp = new Date().toISOString();
-    const dmrMessage = {
+    const dmrMessage: ExternalServiceMessageDto = {
       id: incomingMessage.id || randomUUID(),
-      senderId: incomingMessage.senderId,
       recipientId: incomingMessage.recipientId,
       timestamp: incomingMessage.timestamp || timestamp,
-      type: 'ChatMessage', // Use MessageType.ChatMessage
+      type: MessageType.ChatMessage,
       payload: {
         chat: {
           id: chatId,
@@ -69,29 +81,11 @@ app.post('/api/messages', async (request, response): Promise<void> => {
 
     // Send to DMR Agent A
     await axios.post(`${dmrAgentAUrl}/v1/messages`, dmrMessage);
-
-    // Store for verification
-    sentMessages.push({
-      original: incomingMessage,
-      dmrFormat: dmrMessage,
-      sentAt: new Date().toISOString(),
-    });
-
-    response.status(200).json({
-      success: true,
-      message: 'Message sent to DMR Agent A',
-      dmrMessage,
-    });
-  } catch (error: unknown) {
+    sentMessages.push(incomingMessage);
+    response.status(200).json({ success: true });
+  } catch (error) {
     console.error('[External A] Error:', error);
-    if (error instanceof Error) {
-      console.error('[External A] Error message:', error.message);
-      console.error('[External A] Error stack:', error.stack);
-    }
-    response.status(500).json({
-      error: 'Failed to send message',
-      details: error instanceof Error ? error.message : error,
-    });
+    response.status(500).json({ error: 'Failed to process message' });
   }
 });
 

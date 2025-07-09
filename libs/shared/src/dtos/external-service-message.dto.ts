@@ -18,10 +18,6 @@ abstract class Message<T> {
 
   @IsUUID()
   @IsNotEmpty()
-  senderId!: string;
-
-  @IsUUID()
-  @IsNotEmpty()
   recipientId!: string;
 
   @IsISO8601()

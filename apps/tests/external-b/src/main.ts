@@ -24,11 +24,18 @@ app.use(express.json());
 
 // Endpoint to receive messages from DMR Agent B
 const handleMessage = (req: Request, res: Response): void => {
+  console.log('Received incoming message:', {
+    body: req.body as Record<string, unknown>,
+    headers: req.headers,
+    timestamp: new Date().toISOString(),
+  });
+
   try {
     const dto = plainToInstance(ExternalServiceMessageDto, req.body);
     const errors = validateSync(dto);
 
     if (errors.length > 0) {
+      console.error('Message validation failed:', errors);
       res.status(400).json({ errors });
       return;
     }
@@ -48,8 +55,10 @@ const handleMessage = (req: Request, res: Response): void => {
         timestamp: dto.timestamp,
         recipientId: dto.recipientId,
       };
+      console.log('Successfully processed message:', lastReceivedMessage);
       res.status(200).json({ success: true });
     } else {
+      console.error('Invalid message format:', dto);
       res.status(400).json({ error: 'Invalid message format' });
     }
   } catch (error) {

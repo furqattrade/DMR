@@ -225,7 +225,6 @@ describe('MessageService', () => {
 
       const message: ExternalServiceMessageDto = {
         id: 'test-message-id',
-        senderId: 'test-sender-id',
         recipientId: mockRecipient.id,
         timestamp: '2023-01-01T12:00:00.000Z',
         type: MessageType.ChatMessage,
@@ -241,7 +240,7 @@ describe('MessageService', () => {
           payload: encryptedPayload,
           recipientId: mockRecipient.id,
           senderId: agentConfigMock.id,
-          timestamp: message.timestamp, // Should use timestamp from incoming message
+          timestamp: message.timestamp,
         }),
       );
 
@@ -264,7 +263,6 @@ describe('MessageService', () => {
 
       const message: ExternalServiceMessageDto = {
         id: 'test-message-id',
-        senderId: 'test-sender-id',
         recipientId: mockRecipient.id,
         timestamp: '2023-01-01T12:00:00.000Z',
         type: MessageType.ChatMessage,
@@ -281,7 +279,6 @@ describe('MessageService', () => {
 
       const message: ExternalServiceMessageDto = {
         id: 'test-message-id',
-        senderId: 'test-sender-id',
         recipientId: 'invalid-recipient-id',
         timestamp: '2023-01-01T12:00:00.000Z',
         type: MessageType.ChatMessage,
@@ -304,7 +301,6 @@ describe('MessageService', () => {
 
       const message: ExternalServiceMessageDto = {
         id: 'test-message-id',
-        senderId: 'test-sender-id',
         recipientId: 'recipient-id',
         timestamp: '2023-01-01T12:00:00.000Z',
         type: MessageType.ChatMessage,
@@ -428,7 +424,6 @@ describe('MessageService', () => {
   describe('sendEncryptedMessageToServer', () => {
     const mockMessage: ExternalServiceMessageDto = {
       id: 'test-message-id',
-      senderId: 'test-sender-id',
       recipientId: 'recipient-id',
       timestamp: '2023-01-01T12:00:00.000Z',
       type: MessageType.ChatMessage,
@@ -654,7 +649,6 @@ describe('MessageService', () => {
     it('should handle complex message payloads', async () => {
       const complexMessage: ExternalServiceMessageDto = {
         id: 'complex-message-id',
-        senderId: 'test-sender-id',
         recipientId: 'recipient-123',
         timestamp: '2023-01-01T12:00:00.000Z',
         type: MessageType.ChatMessage,
@@ -919,7 +913,6 @@ describe('MessageService', () => {
 
       const message: ExternalServiceMessageDto = {
         id: 'test-message-id',
-        senderId: 'test-sender-id',
         recipientId: mockRecipient.id,
         timestamp: '2023-01-01T12:00:00.000Z',
         type: MessageType.ChatMessage,

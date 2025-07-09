@@ -5,6 +5,7 @@ import {
   AgentEventNames,
   ChatMessagePayloadDto,
   ClientConfigDto,
+  DMRServerMessageDto,
   ExternalServiceMessageDto,
   IAgent,
   ISocketAckCallback,
@@ -181,7 +182,7 @@ export class MessagesService implements OnModuleInit {
         });
       }
 
-      const outgoingMessage: ExternalServiceMessageDto = {
+      const outgoingMessage: DMRServerMessageDto = {
         id: message.id,
         senderId: message.senderId,
         recipientId: message.recipientId,
@@ -227,7 +228,9 @@ export class MessagesService implements OnModuleInit {
     }
   }
 
-  private async handleOutgoingMessage(message: ExternalServiceMessageDto): Promise<boolean> {
+  private async handleOutgoingMessage(
+    message: ExternalServiceMessageDto | DMRServerMessageDto,
+  ): Promise<boolean> {
     if (!this.agentConfig.outgoingMessageEndpoint) {
       throw new Error('Outgoing message endpoint not configured');
     }
