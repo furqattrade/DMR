@@ -13,11 +13,13 @@ jobs:
     name: End-to-End Tests (Node.js ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
-
+    
+    # Run on: pushes to main/dev, PRs to dev, PRs to main with e2e label
     if: |
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'e2e'))
+      (github.event.pull_request.base.ref == 'dev') ||
+      (github.event.pull_request.base.ref == 'main' && contains(github.event.pull_request.labels.*.name, 'e2e'))
 
     strategy:
       matrix:
