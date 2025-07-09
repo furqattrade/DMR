@@ -125,10 +125,6 @@ The main Docker Compose file is located at the root of the repository: [`docker-
 docker compose up -d
 ```
 
-### e2e Testing
-
-For e2e testing environment port configuration, please refer to the [e2e test README](./apps/tests/e2e/README.md).
-
 ### Manual testing
 
 You can test the whole flow of the solution this way:
