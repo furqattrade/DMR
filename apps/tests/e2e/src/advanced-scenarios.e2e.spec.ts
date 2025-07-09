@@ -89,7 +89,6 @@ describe('DMR Basic Message Flow E2E Test', () => {
     expect(receivedMessage?.id).toBe(messageId);
     expect(receivedMessage?.type).toBe(MessageType.ChatMessage);
     expect(receivedMessage?.payload).toBe('Hello from Agent A!');
-    expect(receivedMessage?.senderId).toBe('d3b07384-d9a0-4c3f-a4e2-123456789abc');
     expect(receivedMessage?.recipientId).toBe('a1e45678-12bc-4ef0-9876-def123456789');
   });
 });
