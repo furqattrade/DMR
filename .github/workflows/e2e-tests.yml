@@ -2,9 +2,10 @@ name: E2E Tests
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, dev]
   pull_request:
-    branches: [main, develop]
+    types: [opened, synchronize, reopened, labeled]
+    branches: [main, dev]
   workflow_dispatch:
 
 jobs:
@@ -12,6 +13,11 @@ jobs:
     name: End-to-End Tests (Node.js ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
+
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'e2e'))
 
     strategy:
       matrix:
@@ -31,7 +37,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install pnpm
         uses: pnpm/action-setup@v2
@@ -46,8 +52,8 @@ jobs:
 
       - name: Run E2E Tests
         run: |
-          chmod +x scripts/e2e-test-ci.sh
-          npm run e2e:ci
+          chmod +x apps/tests/e2e/scripts/e2e-test-ci.sh
+          pnpm run e2e:ci
 
       - name: Generate test summary
         if: always()
@@ -62,7 +68,7 @@ jobs:
           else
             echo "### Service Status" >> $GITHUB_STEP_SUMMARY
             echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-            docker-compose -f docker-compose.e2e.yml ps || echo "No services running"
+            docker-compose -f apps/tests/e2e/docker-compose.e2e.yml ps || echo "No services running"
             echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           fi
 
@@ -70,9 +76,9 @@ jobs:
         if: failure()
         run: |
           echo "=== Service Logs ==="
-          docker-compose -f docker-compose.e2e.yml logs --tail=200
+          docker-compose -f apps/tests/e2e/docker-compose.e2e.yml logs --tail=200
           echo "=== Container Status ==="
-          docker-compose -f docker-compose.e2e.yml ps -a
+          docker-compose -f apps/tests/e2e/docker-compose.e2e.yml ps -a
           echo "=== Docker System Info ==="
           docker system df
           docker images
@@ -89,5 +95,5 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          docker-compose -f docker-compose.e2e.yml down --volumes --remove-orphans
+          docker-compose -f apps/tests/e2e/docker-compose.e2e.yml down --volumes --remove-orphans
           docker system prune -af --volumes
