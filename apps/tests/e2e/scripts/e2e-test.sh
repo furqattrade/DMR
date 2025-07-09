@@ -4,17 +4,17 @@
 
 set -e
 
+cd "$(dirname "$0")"
+
 echo "🚀 Starting DMR E2E Tests (Full Mode)..."
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Get the project root directory
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
-DOCKER_COMPOSE_FILE="${PROJECT_ROOT}/docker-compose.e2e.yml"
+DOCKER_COMPOSE_FILE="../docker-compose.e2e.yml"
 
 # Function to cleanup
 cleanup() {
@@ -61,16 +61,17 @@ docker-compose -f "${DOCKER_COMPOSE_FILE}" ps
 
 # Run the tests with environment variables
 echo -e "${YELLOW}🧪 Running E2E Tests...${NC}"
-cd "${PROJECT_ROOT}/apps/tests/e2e"
+cd ..
 
 # Set environment variables and run tests
-RABBITMQ_MANAGEMENT_URL=http://localhost:8072 \
-DMR_SERVER_1_URL=http://localhost:8075 \
-DMR_SERVER_2_URL=http://localhost:8076 \
-DMR_AGENT_A_URL=http://localhost:8077 \
-DMR_AGENT_B_URL=http://localhost:8078 \
-EXTERNAL_SERVICE_A_URL=http://localhost:8073 \
-EXTERNAL_SERVICE_B_URL=http://localhost:8074 \
+export RABBITMQ_MANAGEMENT_URL=http://localhost:8072
+export DMR_SERVER_1_URL=http://localhost:8075
+export DMR_SERVER_2_URL=http://localhost:8076
+export DMR_AGENT_A_URL=http://localhost:8077
+export DMR_AGENT_B_URL=http://localhost:8078
+export EXTERNAL_SERVICE_A_URL=http://localhost:8073
+export EXTERNAL_SERVICE_B_URL=http://localhost:8074
+
 npx --yes pnpm@latest test
 
 echo -e "${GREEN}✅ E2E Tests completed successfully!${NC}" 

@@ -4,19 +4,21 @@
 
 set -e
 
+cd "$(dirname "$0")"
+
 echo "🔍 Verifying E2E Test Setup..."
 
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 # Check if required files exist
 echo -e "${YELLOW}📋 Checking required files...${NC}"
 
 required_files=(
-    "../../../docker-compose.e2e.yml"
+    "../docker-compose.e2e.yml"
     "../package.json"
     "../src/advanced-scenarios.e2e-spec.ts"
     "e2e-test.sh"
@@ -105,7 +107,7 @@ done
 
 # Test Docker Compose file syntax
 echo -e "\n${YELLOW}🔍 Validating Docker Compose syntax...${NC}"
-if docker-compose -f ../../../docker-compose.e2e.yml config > /dev/null 2>&1; then
+if docker-compose -f "../docker-compose.e2e.yml" config > /dev/null 2>&1; then
     echo -e "✅ docker-compose.e2e.yml syntax is valid"
 else
     echo -e "${RED}❌ docker-compose.e2e.yml has syntax errors${NC}"

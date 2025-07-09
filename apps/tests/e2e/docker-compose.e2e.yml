@@ -19,7 +19,7 @@ services:
 
   dmr-server-1:
     build:
-      context: .
+      context: ../../../
       dockerfile: apps/dmr-server/Dockerfile
     container_name: dmr-server-1-e2e
     ports:
@@ -65,7 +65,7 @@ services:
 
   dmr-server-2:
     build:
-      context: .
+      context: ../../../
       dockerfile: apps/dmr-server/Dockerfile
     container_name: dmr-server-2-e2e
     ports:
@@ -112,7 +112,7 @@ services:
 
   dmr-agent-a:
     build:
-      context: .
+      context: ../../../
       dockerfile: apps/dmr-agent/Dockerfile
     container_name: dmr-agent-a-e2e
     ports:
@@ -149,7 +149,7 @@ services:
 
   dmr-agent-b:
     build:
-      context: .
+      context: ../../../
       dockerfile: apps/dmr-agent/Dockerfile
     container_name: dmr-agent-b-e2e
     ports:
@@ -186,7 +186,7 @@ services:
 
   external-service-a:
     build:
-      context: .
+      context: ../../../
       dockerfile: apps/tests/external-a/Dockerfile
     container_name: external-service-a-e2e
     ports:
@@ -201,7 +201,7 @@ services:
 
   external-service-b:
     build:
-      context: .
+      context: ../../../
       dockerfile: apps/tests/external-b/Dockerfile
     container_name: external-service-b-e2e
     ports:
