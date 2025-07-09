@@ -92,7 +92,16 @@ pnpm start:agent
 
 - `pnpm test:server:log`: Run tests for DMR server
 - `pnpm test:agent:log`: Run tests for DMR agent
-- `pnpm e2e:full`: Run complete end-to-end test cycle (build, test, cleanup). The e2e tests have a fairly complex set up, more details in [e2e Readme](./apps/tests/e2e/README.md).
+- `pnpm e2e:full`: Run complete end-to-end test cycle (build, test, cleanup)
+
+For detailed information about e2e tests, including:
+- Service configurations and ports
+- Environment variables
+- Test scenarios and timeouts
+- Troubleshooting guide
+- Health check endpoints
+
+Please refer to the dedicated [e2e test README](./apps/tests/e2e/README.md).
 
 ### Code Quality
 
@@ -115,6 +124,10 @@ The main Docker Compose file is located at the root of the repository: [`docker-
 ```bash
 docker compose up -d
 ```
+
+### e2e Testing
+
+For e2e testing environment port configuration, please refer to the [e2e test README](./apps/tests/e2e/README.md).
 
 ### Manual testing
 
@@ -482,50 +495,87 @@ Suggested metrics:
 - **`rabbitmq_queue_messages_unacknowledged`** | `gauge`
   number of messages delivered to consumers but not yet acknowledged
 
-#### Unit Tests
+- **`rabbitmq_queue_messages_total`** | `counter`
+  total number of messages published to the queue (ready + unacknowledged)
 
-- `test`: Run unit tests for all applications
-- `test:server`: Run unit tests for DMR server
-- `test:agent`: Run unit tests for DMR agent
-- `test:server:log`: Run server tests with verbose output
-- `test:agent:log`: Run agent tests with verbose output
+- **`rabbitmq_connections`** | `gauge`
+  current number of open connections
 
-#### End-to-End Tests
+- **`rabbitmq_channels`** | `gauge`
+  current number of open AMQP channels
 
-- `e2e:full`: Complete E2E test cycle (build, test, cleanup)
-- `e2e:local`: Run E2E tests against running services
-- `e2e:setup`: Start E2E test services
-- `e2e:teardown`: Stop and cleanup E2E test services
-- `e2e:verify`: Verify E2E test setup is working
-- `e2e:ci`: CI-optimized E2E test execution
-- `e2e:server`: Run NX E2E tests for DMR server
+- **`rabbitmq_queue_memory_usage`** | `gauge`
+  memory used by individual queues
 
-#### E2E Testing Quick Start
+- **`rabbitmq_node_memory_used_bytes`** | `gauge`
+  total memory used by the RabbitMQ node
 
-```bash
-# Verify setup
-npm run e2e:verify
+- **`rabbitmq_node_disk_free`** | `gauge`
+  disk space remaining on the node
 
-# Option 1: Full automated test (recommended)
-npm run e2e:full
+- **`rabbitmq_node_running`** | `gauge`
+  node running status (1 = up, 0 = down)
 
-# Option 2: Manual control
-npm run e2e:setup    # Start services
-npm run e2e:local    # Run tests
-npm run e2e:teardown # Cleanup
+- **`rabbitmq_erlang_processes`** | `gauge`
+  number of Erlang processes currently in use
 
-# Option 3: Development workflow
-npm run e2e:setup    # Start services (leave running)
-npm run e2e:local    # Run tests multiple times
-# ... make changes ...
-npm run e2e:local    # Test again
-npm run e2e:teardown # Cleanup when done
-```
+- **`rabbitmq_vm_memory_limit`** | `gauge`
+  memory limit of the Erlang VM
 
-The E2E tests verify complete message flow from External Service A → DMR Agent A → DMR Server → RabbitMQ → DMR Agent B → External Service B.
+- **`rabbitmq_message_stats_publish`** | `counter`
+  total number of messages published
 
-For detailed test output, you can add the `--reporter=verbose` flag to unit test commands:
+- **`rabbitmq_message_stats_ack`** | `counter`
+  total number of messages acknowledged
 
-```bash
-pnpm test:server -- --reporter=verbose
+- **`rabbitmq_message_stats_delivery_get`** | `counter`
+  total number of messages delivered or fetched from queues
+
+Suggested alert rules:
+
+```yaml
+  - alert: RabbitMQHighReadyMessages
+  expr: increase(rabbitmq_queue_messages_ready[5m]) > 100000
+  for: 5m
+  labels:
+    severity: warning
+  annotations:
+    summary: "High number of ready messages in RabbitMQ queue"
+    description: "Over 100k messages have accumulated in ready state in the last 5 minutes. Check consumers."
+
+- alert: RabbitMQUnauthorizedAcks
+  expr: rabbitmq_queue_messages_unacknowledged > 50000
+  for: 5m
+  labels:
+    severity: critical
+  annotations:
+    summary: "High unacknowledged messages"
+    description: "More than 50k messages are unacknowledged. Consumers might be slow or stuck."
+
+- alert: RabbitMQNodeDown
+  expr: rabbitmq_node_running == 0
+  for: 1m
+  labels:
+    severity: critical
+  annotations:
+    summary: "RabbitMQ node is down"
+    description: "A RabbitMQ node has stopped running. Immediate attention required."
+
+- alert: RabbitMQMemoryHigh
+  expr: rabbitmq_node_memory_used_bytes / rabbitmq_vm_memory_limit > 0.85
+  for: 10m
+  labels:
+    severity: warning
+  annotations:
+    summary: "RabbitMQ node memory usage high"
+    description: "Memory usage above 85% for more than 10 minutes. Risk of memory alarms."
+
+- alert: RabbitMQDiskLow
+  expr: rabbitmq_node_disk_free < 10 * 1024 * 1024 * 1024
+  for: 5m
+  labels:
+    severity: warning
+  annotations:
+    summary: "RabbitMQ node low disk space"
+    description: "Less than 10 GB disk free. Could lead to message persistence issues."
 ```

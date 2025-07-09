@@ -108,6 +108,7 @@ The tests automatically run in GitHub Actions on:
 
 - **RabbitMQ**: Message broker (port 8072 for management UI)
 - **DMR Server 1**: Primary message routing server (port 8075)
+- **DMR Server 2**: Secondary message routing server (port 8076)
 - **DMR Agent A**: Connected to DMR Server 1 (port 8077)
 - **DMR Agent B**: Connected to DMR Server 1 (port 8078)
 - **External Service A**: Message sender (port 8073)
@@ -120,7 +121,12 @@ RABBITMQ_MANAGEMENT_URL=http://localhost:8072
 EXTERNAL_SERVICE_A_URL=http://localhost:8073
 EXTERNAL_SERVICE_B_URL=http://localhost:8074
 DMR_SERVER_1_URL=http://localhost:8075
+DMR_SERVER_2_URL=http://localhost:8076
+DMR_AGENT_A_URL=http://localhost:8077
+DMR_AGENT_B_URL=http://localhost:8078
 ```
+
+Note: The port numbers listed above are for the e2e testing environment. For development environment port configuration, please refer to the main [README.md](../../README.md).
 
 ### Health Check Examples
 
