@@ -544,10 +544,11 @@ Suggested alert rules:
 
 We use GitHub Actions for our CI pipeline. The following checks run automatically on all non-draft Pull Requests:
 
-- Build
+- Format check
 - Linting
-- Type checking
-- Unit tests
+- Unit tests (DMR Server)
+- Unit tests (DMR Agent)
 - Integration tests
+- Docker builds (Server & Agent)
 
 End-to-end (E2E) tests are also available but must be explicitly triggered by adding the `e2e` label to the PR. This is because E2E tests take approximately 5 minutes to complete and are only needed for certain changes.
