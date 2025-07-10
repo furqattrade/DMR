@@ -544,6 +544,7 @@ Suggested alert rules:
 
 We use GitHub Actions for our CI pipeline. The following checks run automatically on all non-draft Pull Requests:
 
+- Build
 - Linting
 - Type checking
 - Unit tests
